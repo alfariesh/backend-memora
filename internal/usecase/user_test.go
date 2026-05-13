@@ -71,10 +71,14 @@ func TestLogin(t *testing.T) {
 		}
 		repo.EXPECT().GetByEmail(context.Background(), "test@example.com").Return(storedUser, nil)
 
-		token, err := uc.Login(context.Background(), "test@example.com", "password123")
+		tokens, err := uc.Login(context.Background(), "test@example.com", "password123")
 
 		require.NoError(t, err)
-		assert.NotEmpty(t, token)
+		assert.NotEmpty(t, tokens.Token)
+		assert.NotEmpty(t, tokens.AccessToken)
+		assert.Equal(t, tokens.Token, tokens.AccessToken)
+		assert.Empty(t, tokens.RefreshToken)
+		assert.NotZero(t, tokens.ExpiresAt)
 	})
 
 	t.Run("login wrong password", func(t *testing.T) {
@@ -90,10 +94,12 @@ func TestLogin(t *testing.T) {
 		}
 		repo.EXPECT().GetByEmail(context.Background(), "test@example.com").Return(storedUser, nil)
 
-		token, err := uc.Login(context.Background(), "test@example.com", "wrongpassword")
+		tokens, err := uc.Login(context.Background(), "test@example.com", "wrongpassword")
 
 		require.ErrorIs(t, err, entity.ErrInvalidCredentials)
-		assert.Empty(t, token)
+		assert.Empty(t, tokens.Token)
+		assert.Empty(t, tokens.AccessToken)
+		assert.Empty(t, tokens.RefreshToken)
 	})
 
 	t.Run("login user not found", func(t *testing.T) {
@@ -102,10 +108,12 @@ func TestLogin(t *testing.T) {
 		uc, repo := newUserUseCase(t)
 		repo.EXPECT().GetByEmail(context.Background(), "notfound@example.com").Return(entity.User{}, entity.ErrUserNotFound)
 
-		token, err := uc.Login(context.Background(), "notfound@example.com", "password123")
+		tokens, err := uc.Login(context.Background(), "notfound@example.com", "password123")
 
 		require.ErrorIs(t, err, entity.ErrInvalidCredentials)
-		assert.Empty(t, token)
+		assert.Empty(t, tokens.Token)
+		assert.Empty(t, tokens.AccessToken)
+		assert.Empty(t, tokens.RefreshToken)
 	})
 }
 

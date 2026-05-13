@@ -1,5 +1,20 @@
 basePath: /v1
 definitions:
+  entity.AuthTokens:
+    properties:
+      access_token:
+        example: eyJhbGciOiJIUzI1NiIs...
+        type: string
+      expires_at:
+        example: "2026-01-01T00:00:00Z"
+        type: string
+      refresh_token:
+        example: C-Kt0pA3...
+        type: string
+      token:
+        example: eyJhbGciOiJIUzI1NiIs...
+        type: string
+    type: object
   entity.DeviceToken:
     properties:
       active:
@@ -441,6 +456,14 @@ definitions:
         example: 42
         type: integer
     type: object
+  v1.RefreshToken:
+    properties:
+      refresh_token:
+        example: C-Kt0pA3...
+        type: string
+    required:
+    - refresh_token
+    type: object
   v1.Register:
     properties:
       email:
@@ -511,12 +534,6 @@ definitions:
       total:
         example: 42
         type: integer
-    type: object
-  v1.Token:
-    properties:
-      token:
-        example: eyJhbGciOiJIUzI1NiIs...
-        type: string
     type: object
   v1.TransitionTask:
     properties:
@@ -655,7 +672,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Authenticate user and get JWT token
+      description: Authenticate user and get access and refresh tokens
       operationId: login
       parameters:
       - description: Login credentials
@@ -670,7 +687,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/v1.Token'
+            $ref: '#/definitions/entity.AuthTokens'
         "400":
           description: Bad Request
           schema:
@@ -684,6 +701,70 @@ paths:
           schema:
             $ref: '#/definitions/v1.Error'
       summary: Login
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Revoke a refresh token
+      operationId: logout
+      parameters:
+      - description: Refresh token
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/v1.RefreshToken'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.Error'
+      summary: Logout
+      tags:
+      - auth
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Rotate refresh token and issue a new access token
+      operationId: refresh-token
+      parameters:
+      - description: Refresh token
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/v1.RefreshToken'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.AuthTokens'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.Error'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/v1.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.Error'
+      summary: Refresh token
       tags:
       - auth
   /auth/register:

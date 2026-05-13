@@ -20,4 +20,5 @@ var (
 	ErrPushDeviceNotRegistered = errors.New("push device not registered")
 	ErrUserSettingsNotFound    = errors.New("user settings not found")
 	ErrInvalidUserSettings     = errors.New("invalid user settings")
+	ErrInvalidRefreshToken     = errors.New("invalid refresh token")
 )

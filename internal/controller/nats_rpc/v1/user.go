@@ -52,13 +52,13 @@ func (r *V1) login() server.CallHandler {
 			return nil, fmt.Errorf("nats_rpc - V1 - login - validation: %w", err)
 		}
 
-		token, err := r.u.Login(context.Background(), req.Email, req.Password)
+		tokens, err := r.u.Login(context.Background(), req.Email, req.Password)
 		if err != nil {
 			r.l.Error(err, "nats_rpc - V1 - login")
 
 			return nil, fmt.Errorf("nats_rpc - V1 - login: %w", err)
 		}
 
-		return response.Token{Token: token}, nil
+		return response.Token{Token: tokens.AccessToken}, nil
 	}
 }

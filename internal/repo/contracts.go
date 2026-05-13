@@ -35,6 +35,13 @@ type (
 		Upsert(ctx context.Context, settings *entity.UserSettings) error
 	}
 
+	// UserSessionRepo -.
+	UserSessionRepo interface {
+		Store(ctx context.Context, session *entity.UserSession) error
+		GetActiveByRefreshTokenHash(ctx context.Context, refreshTokenHash string, now time.Time) (entity.UserSession, error)
+		RevokeByRefreshTokenHash(ctx context.Context, refreshTokenHash string, at time.Time) error
+	}
+
 	// TaskRepo -.
 	TaskRepo interface {
 		Store(ctx context.Context, task *entity.Task) error

@@ -53,6 +53,7 @@ type servers struct {
 
 func initUseCases(cfg *config.Config, pg *postgres.Postgres, jwtManager *jwt.Manager) useCases {
 	userRepo := persistent.NewUserRepo(pg)
+	userSessionRepo := persistent.NewUserSessionRepo(pg)
 	userSettingsRepo := persistent.NewUserSettingsRepo(pg)
 	taskRepo := persistent.NewTaskRepo(pg)
 	translationRepo := persistent.NewTranslationRepo(pg)
@@ -65,7 +66,7 @@ func initUseCases(cfg *config.Config, pg *postgres.Postgres, jwtManager *jwt.Man
 	pushSender := webapi.NewExpoPushSender(cfg.Expo.PushAccessToken)
 
 	return useCases{
-		user:         user.New(userRepo, jwtManager),
+		user:         user.New(userRepo, jwtManager, user.SessionRepo(userSessionRepo), user.RefreshTokenTTL(cfg.JWT.RefreshTokenExpiry)),
 		userSettings: usersettings.New(userSettingsRepo),
 		task:         task.New(taskRepo),
 		translation:  translation.New(translationRepo, webapi.New()),

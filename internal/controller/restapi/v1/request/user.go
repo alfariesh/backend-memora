@@ -15,6 +15,11 @@ type Login struct {
 	Password string `json:"password" validate:"required"       example:"secret123"`
 } // @name v1.Login
 
+// RefreshToken -.
+type RefreshToken struct {
+	RefreshToken string `json:"refresh_token" validate:"required" example:"C-Kt0pA3..."`
+} // @name v1.RefreshToken
+
 // UpdateUserSettings -.
 type UpdateUserSettings struct {
 	Timezone             string                   `json:"timezone"              validate:"omitempty,max=64"                  example:"Asia/Jakarta"`

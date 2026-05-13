@@ -27,17 +27,25 @@ func New(secret string, duration time.Duration) *Manager {
 
 // GenerateToken creates a new JWT token for the given user ID.
 func (m *Manager) GenerateToken(userID string) (string, error) {
+	tokenString, _, err := m.GenerateTokenWithExpiry(userID)
+
+	return tokenString, err
+}
+
+// GenerateTokenWithExpiry creates a new JWT token and returns its expiration time.
+func (m *Manager) GenerateTokenWithExpiry(userID string) (string, time.Time, error) {
+	expiresAt := time.Now().UTC().Add(m.duration)
 	token := jwtlib.NewWithClaims(jwtlib.SigningMethodHS256, jwtlib.RegisteredClaims{
 		Subject:   userID,
-		ExpiresAt: jwtlib.NewNumericDate(time.Now().Add(m.duration)),
+		ExpiresAt: jwtlib.NewNumericDate(expiresAt),
 	})
 
 	tokenString, err := token.SignedString([]byte(m.secret))
 	if err != nil {
-		return "", fmt.Errorf("jwt - GenerateToken - token.SignedString: %w", err)
+		return "", time.Time{}, fmt.Errorf("jwt - GenerateTokenWithExpiry - token.SignedString: %w", err)
 	}
 
-	return tokenString, nil
+	return tokenString, expiresAt, nil
 }
 
 // ParseToken validates a JWT token and returns the user ID.

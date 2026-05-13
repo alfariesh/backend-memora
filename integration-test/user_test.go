@@ -133,14 +133,154 @@ func TestHTTPLoginV1(t *testing.T) {
 
 			if tt.checkToken {
 				result := parseJSON[struct {
-					Token string `json:"token"`
+					Token        string `json:"token"`
+					AccessToken  string `json:"access_token"`
+					RefreshToken string `json:"refresh_token"`
+					ExpiresAt    string `json:"expires_at"`
 				}](t, resp)
 
 				if result.Token == "" {
 					t.Error("Expected non-empty token")
 				}
+
+				if result.AccessToken == "" {
+					t.Error("Expected non-empty access token")
+				}
+
+				if result.Token != result.AccessToken {
+					t.Error("Expected token to match access token")
+				}
+
+				if result.RefreshToken == "" {
+					t.Error("Expected non-empty refresh token")
+				}
+
+				if result.ExpiresAt == "" {
+					t.Error("Expected non-empty expires_at")
+				}
 			}
 		})
+	}
+}
+
+// HTTP POST: /v1/auth/refresh and /v1/auth/logout.
+func TestHTTPRefreshLogoutV1(t *testing.T) {
+	name := sanitizeTestName(t)
+	email := name + "@test.com"
+	password := testPassword
+
+	resp := registerUser(t, name, email, password)
+	resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("pre-register: expected 201, got %d", resp.StatusCode)
+	}
+
+	ctx, cancel := context.WithTimeout(t.Context(), requestTimeout)
+	defer cancel()
+
+	loginBody := fmt.Sprintf(`{"email":%q,"password":%q}`, email, password)
+	loginResp, err := doWebRequestWithTimeout(ctx, http.MethodPost, basePathV1+"/auth/login", bytes.NewBufferString(loginBody))
+	if err != nil {
+		t.Fatalf("login: failed to send request: %v", err)
+	}
+
+	if loginResp.StatusCode != http.StatusOK {
+		loginResp.Body.Close()
+		t.Fatalf("login: expected status %d, got %d", http.StatusOK, loginResp.StatusCode)
+	}
+
+	loginResult := parseJSON[struct {
+		AccessToken  string `json:"access_token"`
+		RefreshToken string `json:"refresh_token"`
+	}](t, loginResp)
+	loginResp.Body.Close()
+
+	if loginResult.AccessToken == "" {
+		t.Fatal("Expected non-empty access token")
+	}
+
+	if loginResult.RefreshToken == "" {
+		t.Fatal("Expected non-empty refresh token")
+	}
+
+	refreshBody := fmt.Sprintf(`{"refresh_token":%q}`, loginResult.RefreshToken)
+	refreshResp, err := doWebRequestWithTimeout(ctx, http.MethodPost, basePathV1+"/auth/refresh", bytes.NewBufferString(refreshBody))
+	if err != nil {
+		t.Fatalf("refresh: failed to send request: %v", err)
+	}
+
+	if refreshResp.StatusCode != http.StatusOK {
+		refreshResp.Body.Close()
+		t.Fatalf("refresh: expected status %d, got %d", http.StatusOK, refreshResp.StatusCode)
+	}
+
+	refreshResult := parseJSON[struct {
+		Token        string `json:"token"`
+		AccessToken  string `json:"access_token"`
+		RefreshToken string `json:"refresh_token"`
+	}](t, refreshResp)
+	refreshResp.Body.Close()
+
+	if refreshResult.Token == "" || refreshResult.AccessToken == "" {
+		t.Fatal("Expected refreshed access token")
+	}
+
+	if refreshResult.Token != refreshResult.AccessToken {
+		t.Fatal("Expected refreshed token to match access token")
+	}
+
+	if refreshResult.RefreshToken == "" {
+		t.Fatal("Expected rotated refresh token")
+	}
+
+	if refreshResult.RefreshToken == loginResult.RefreshToken {
+		t.Fatal("Expected refresh token rotation")
+	}
+
+	oldRefreshResp, err := doWebRequestWithTimeout(ctx, http.MethodPost, basePathV1+"/auth/refresh", bytes.NewBufferString(refreshBody))
+	if err != nil {
+		t.Fatalf("old refresh: failed to send request: %v", err)
+	}
+
+	oldRefreshResp.Body.Close()
+
+	if oldRefreshResp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("old refresh: expected status %d, got %d", http.StatusUnauthorized, oldRefreshResp.StatusCode)
+	}
+
+	profileResp, err := doAuthenticatedRequest(ctx, http.MethodGet, basePathV1+"/user/profile", http.NoBody, refreshResult.AccessToken)
+	if err != nil {
+		t.Fatalf("profile with refreshed token: failed to send request: %v", err)
+	}
+
+	profileResp.Body.Close()
+
+	if profileResp.StatusCode != http.StatusOK {
+		t.Fatalf("profile with refreshed token: expected status %d, got %d", http.StatusOK, profileResp.StatusCode)
+	}
+
+	logoutBody := fmt.Sprintf(`{"refresh_token":%q}`, refreshResult.RefreshToken)
+	logoutResp, err := doWebRequestWithTimeout(ctx, http.MethodPost, basePathV1+"/auth/logout", bytes.NewBufferString(logoutBody))
+	if err != nil {
+		t.Fatalf("logout: failed to send request: %v", err)
+	}
+
+	logoutResp.Body.Close()
+
+	if logoutResp.StatusCode != http.StatusNoContent {
+		t.Fatalf("logout: expected status %d, got %d", http.StatusNoContent, logoutResp.StatusCode)
+	}
+
+	afterLogoutResp, err := doWebRequestWithTimeout(ctx, http.MethodPost, basePathV1+"/auth/refresh", bytes.NewBufferString(logoutBody))
+	if err != nil {
+		t.Fatalf("refresh after logout: failed to send request: %v", err)
+	}
+
+	afterLogoutResp.Body.Close()
+
+	if afterLogoutResp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("refresh after logout: expected status %d, got %d", http.StatusUnauthorized, afterLogoutResp.StatusCode)
 	}
 }
 

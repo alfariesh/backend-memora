@@ -232,6 +232,73 @@ func (mr *MockUserSettingsRepoMockRecorder) Upsert(ctx, settings any) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Upsert", reflect.TypeOf((*MockUserSettingsRepo)(nil).Upsert), ctx, settings)
 }
 
+// MockUserSessionRepo is a mock of UserSessionRepo interface.
+type MockUserSessionRepo struct {
+	ctrl     *gomock.Controller
+	recorder *MockUserSessionRepoMockRecorder
+	isgomock struct{}
+}
+
+// MockUserSessionRepoMockRecorder is the mock recorder for MockUserSessionRepo.
+type MockUserSessionRepoMockRecorder struct {
+	mock *MockUserSessionRepo
+}
+
+// NewMockUserSessionRepo creates a new mock instance.
+func NewMockUserSessionRepo(ctrl *gomock.Controller) *MockUserSessionRepo {
+	mock := &MockUserSessionRepo{ctrl: ctrl}
+	mock.recorder = &MockUserSessionRepoMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockUserSessionRepo) EXPECT() *MockUserSessionRepoMockRecorder {
+	return m.recorder
+}
+
+// GetActiveByRefreshTokenHash mocks base method.
+func (m *MockUserSessionRepo) GetActiveByRefreshTokenHash(ctx context.Context, refreshTokenHash string, now time.Time) (entity.UserSession, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetActiveByRefreshTokenHash", ctx, refreshTokenHash, now)
+	ret0, _ := ret[0].(entity.UserSession)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetActiveByRefreshTokenHash indicates an expected call of GetActiveByRefreshTokenHash.
+func (mr *MockUserSessionRepoMockRecorder) GetActiveByRefreshTokenHash(ctx, refreshTokenHash, now any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetActiveByRefreshTokenHash", reflect.TypeOf((*MockUserSessionRepo)(nil).GetActiveByRefreshTokenHash), ctx, refreshTokenHash, now)
+}
+
+// RevokeByRefreshTokenHash mocks base method.
+func (m *MockUserSessionRepo) RevokeByRefreshTokenHash(ctx context.Context, refreshTokenHash string, at time.Time) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RevokeByRefreshTokenHash", ctx, refreshTokenHash, at)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RevokeByRefreshTokenHash indicates an expected call of RevokeByRefreshTokenHash.
+func (mr *MockUserSessionRepoMockRecorder) RevokeByRefreshTokenHash(ctx, refreshTokenHash, at any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeByRefreshTokenHash", reflect.TypeOf((*MockUserSessionRepo)(nil).RevokeByRefreshTokenHash), ctx, refreshTokenHash, at)
+}
+
+// Store mocks base method.
+func (m *MockUserSessionRepo) Store(ctx context.Context, session *entity.UserSession) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Store", ctx, session)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Store indicates an expected call of Store.
+func (mr *MockUserSessionRepoMockRecorder) Store(ctx, session any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Store", reflect.TypeOf((*MockUserSessionRepo)(nil).Store), ctx, session)
+}
+
 // MockTaskRepo is a mock of TaskRepo interface.
 type MockTaskRepo struct {
 	ctrl     *gomock.Controller

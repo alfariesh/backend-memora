@@ -48,9 +48,51 @@ Success: `200`
 
 ```json
 {
-  "token": "<jwt>"
+  "token": "<jwt>",
+  "access_token": "<jwt>",
+  "refresh_token": "<opaque-refresh-token>",
+  "expires_at": "2026-01-01T00:00:00Z"
 }
 ```
+
+`token` is kept as an alias of `access_token` for existing clients.
+
+### Refresh Token
+
+`POST /auth/refresh`
+
+```json
+{
+  "refresh_token": "<opaque-refresh-token>"
+}
+```
+
+Success: `200`
+
+```json
+{
+  "token": "<new-jwt>",
+  "access_token": "<new-jwt>",
+  "refresh_token": "<new-opaque-refresh-token>",
+  "expires_at": "2026-01-01T00:00:00Z"
+}
+```
+
+Refresh tokens are rotated. After a successful refresh, the previous refresh token returns `401`.
+
+### Logout
+
+`POST /auth/logout`
+
+```json
+{
+  "refresh_token": "<opaque-refresh-token>"
+}
+```
+
+Success: `204`
+
+Logout revokes the refresh token. The access token remains valid until its JWT expiry.
 
 ### Profile
 

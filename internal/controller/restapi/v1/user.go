@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/evrone/go-clean-template/internal/controller/restapi/v1/request"
-	"github.com/evrone/go-clean-template/internal/controller/restapi/v1/response"
+	_ "github.com/evrone/go-clean-template/internal/controller/restapi/v1/response" // for swaggo
 	"github.com/evrone/go-clean-template/internal/entity"
 	"github.com/gofiber/fiber/v2"
 )
@@ -52,13 +52,13 @@ func (r *V1) register(ctx *fiber.Ctx) error {
 }
 
 // @Summary     Login
-// @Description Authenticate user and get JWT token
+// @Description Authenticate user and get access and refresh tokens
 // @ID          login
 // @Tags        auth
 // @Accept      json
 // @Produce     json
 // @Param       request body     request.Login true "Login credentials"
-// @Success     200     {object} response.Token
+// @Success     200     {object} entity.AuthTokens
 // @Failure     400     {object} response.Error
 // @Failure     401     {object} response.Error
 // @Failure     500     {object} response.Error
@@ -78,7 +78,7 @@ func (r *V1) login(ctx *fiber.Ctx) error {
 		return errorResponse(ctx, http.StatusBadRequest, "invalid request body")
 	}
 
-	token, err := r.u.Login(ctx.UserContext(), body.Email, body.Password)
+	tokens, err := r.u.Login(ctx.UserContext(), body.Email, body.Password)
 	if err != nil {
 		r.l.Error(err, "restapi - v1 - login")
 
@@ -89,7 +89,83 @@ func (r *V1) login(ctx *fiber.Ctx) error {
 		return errorResponse(ctx, http.StatusInternalServerError, "internal server error")
 	}
 
-	return ctx.Status(http.StatusOK).JSON(response.Token{Token: token})
+	return ctx.Status(http.StatusOK).JSON(tokens)
+}
+
+// @Summary     Refresh token
+// @Description Rotate refresh token and issue a new access token
+// @ID          refresh-token
+// @Tags        auth
+// @Accept      json
+// @Produce     json
+// @Param       request body     request.RefreshToken true "Refresh token"
+// @Success     200     {object} entity.AuthTokens
+// @Failure     400     {object} response.Error
+// @Failure     401     {object} response.Error
+// @Failure     500     {object} response.Error
+// @Router      /auth/refresh [post]
+func (r *V1) refreshToken(ctx *fiber.Ctx) error {
+	var body request.RefreshToken
+
+	if err := ctx.BodyParser(&body); err != nil {
+		r.l.Error(err, "restapi - v1 - refreshToken")
+
+		return errorResponse(ctx, http.StatusBadRequest, "invalid request body")
+	}
+
+	if err := r.v.Struct(body); err != nil {
+		r.l.Error(err, "restapi - v1 - refreshToken")
+
+		return errorResponse(ctx, http.StatusBadRequest, "invalid request body")
+	}
+
+	tokens, err := r.u.Refresh(ctx.UserContext(), body.RefreshToken)
+	if err != nil {
+		r.l.Error(err, "restapi - v1 - refreshToken")
+
+		if errors.Is(err, entity.ErrInvalidRefreshToken) {
+			return errorResponse(ctx, http.StatusUnauthorized, "invalid refresh token")
+		}
+
+		return errorResponse(ctx, http.StatusInternalServerError, "internal server error")
+	}
+
+	return ctx.Status(http.StatusOK).JSON(tokens)
+}
+
+// @Summary     Logout
+// @Description Revoke a refresh token
+// @ID          logout
+// @Tags        auth
+// @Accept      json
+// @Produce     json
+// @Param       request body request.RefreshToken true "Refresh token"
+// @Success     204
+// @Failure     400 {object} response.Error
+// @Failure     500 {object} response.Error
+// @Router      /auth/logout [post]
+func (r *V1) logout(ctx *fiber.Ctx) error {
+	var body request.RefreshToken
+
+	if err := ctx.BodyParser(&body); err != nil {
+		r.l.Error(err, "restapi - v1 - logout")
+
+		return errorResponse(ctx, http.StatusBadRequest, "invalid request body")
+	}
+
+	if err := r.v.Struct(body); err != nil {
+		r.l.Error(err, "restapi - v1 - logout")
+
+		return errorResponse(ctx, http.StatusBadRequest, "invalid request body")
+	}
+
+	if err := r.u.Logout(ctx.UserContext(), body.RefreshToken); err != nil {
+		r.l.Error(err, "restapi - v1 - logout")
+
+		return errorResponse(ctx, http.StatusInternalServerError, "internal server error")
+	}
+
+	return ctx.SendStatus(http.StatusNoContent)
 }
 
 // @Summary     Get profile

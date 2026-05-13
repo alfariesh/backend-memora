@@ -29,6 +29,8 @@ func NewRoutes(
 	{
 		authGroup.Post("/register", r.register)
 		authGroup.Post("/login", r.login)
+		authGroup.Post("/refresh", r.refreshToken)
+		authGroup.Post("/logout", r.logout)
 	}
 
 	// Protected routes

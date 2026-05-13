@@ -20,7 +20,9 @@ type (
 	// User -.
 	User interface {
 		Register(ctx context.Context, username, email, password string) (entity.User, error)
-		Login(ctx context.Context, email, password string) (string, error)
+		Login(ctx context.Context, email, password string) (entity.AuthTokens, error)
+		Refresh(ctx context.Context, refreshToken string) (entity.AuthTokens, error)
+		Logout(ctx context.Context, refreshToken string) error
 		GetUser(ctx context.Context, userID string) (entity.User, error)
 	}
 
