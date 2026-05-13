@@ -136,6 +136,14 @@ func (uc *UseCase) sendPush(ctx context.Context, job entity.ReminderJob, title, 
 	failures := make([]string, 0)
 	for _, token := range tokens {
 		if _, err = uc.pushSender.Send(ctx, token.Token, title, body, data); err != nil {
+			if errors.Is(err, entity.ErrPushDeviceNotRegistered) {
+				if deactivateErr := uc.deviceRepo.Deactivate(ctx, job.UserID, token.ID, time.Now().UTC()); deactivateErr != nil {
+					failures = append(failures, deactivateErr.Error())
+				}
+
+				continue
+			}
+
 			failures = append(failures, err.Error())
 		}
 	}

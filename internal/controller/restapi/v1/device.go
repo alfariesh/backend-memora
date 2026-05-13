@@ -32,6 +32,10 @@ func (r *V1) registerDevice(ctx *fiber.Ctx) error {
 	if err != nil {
 		r.l.Error(err, "restapi - v1 - registerDevice")
 
+		if errors.Is(err, entity.ErrInvalidDeviceToken) {
+			return errorResponse(ctx, http.StatusBadRequest, "invalid device token")
+		}
+
 		return errorResponse(ctx, http.StatusInternalServerError, "internal server error")
 	}
 

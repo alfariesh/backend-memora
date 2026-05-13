@@ -3,6 +3,7 @@ package persistent
 import (
 	"context"
 	"fmt"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/evrone/go-clean-template/internal/entity"
@@ -41,18 +42,24 @@ func (r *DeviceTokenRepo) Store(ctx context.Context, token *entity.DeviceToken) 
 
 // Delete -.
 func (r *DeviceTokenRepo) Delete(ctx context.Context, userID, id string) error {
+	return r.Deactivate(ctx, userID, id, time.Now().UTC())
+}
+
+// Deactivate -.
+func (r *DeviceTokenRepo) Deactivate(ctx context.Context, userID, id string, at time.Time) error {
 	sql, args, err := r.Builder.
 		Update("device_tokens").
 		Set("active", false).
+		Set("updated_at", at).
 		Where(sq.Eq{"id": id, "user_id": userID}).
 		ToSql()
 	if err != nil {
-		return fmt.Errorf("DeviceTokenRepo - Delete - r.Builder: %w", err)
+		return fmt.Errorf("DeviceTokenRepo - Deactivate - r.Builder: %w", err)
 	}
 
 	result, err := r.Pool.Exec(ctx, sql, args...)
 	if err != nil {
-		return fmt.Errorf("DeviceTokenRepo - Delete - r.Pool.Exec: %w", err)
+		return fmt.Errorf("DeviceTokenRepo - Deactivate - r.Pool.Exec: %w", err)
 	}
 
 	if result.RowsAffected() == 0 {

@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"strings"
 	"time"
 )
 
@@ -178,6 +179,12 @@ type DeviceToken struct {
 	UpdatedAt time.Time `json:"updated_at" example:"2026-01-01T00:00:00Z"`
 } // @name entity.DeviceToken
 
+// IsExpoPushToken reports whether token looks like an Expo push token.
+func IsExpoPushToken(token string) bool {
+	return hasPushTokenEnvelope(token, "ExpoPushToken[") ||
+		hasPushTokenEnvelope(token, "ExponentPushToken[")
+}
+
 // NormalizeImportantDay fills defaults and validates date-only fields.
 func NormalizeImportantDay(params *ImportantDayParams) error {
 	if params.Type == "" {
@@ -329,4 +336,10 @@ func dateOnly(t time.Time, loc *time.Location) time.Time {
 
 func isLeapYear(year int) bool {
 	return year%4 == 0 && (year%100 != 0 || year%400 == 0)
+}
+
+func hasPushTokenEnvelope(token, prefix string) bool {
+	return strings.HasPrefix(token, prefix) &&
+		strings.HasSuffix(token, "]") &&
+		len(token) > len(prefix)+1
 }

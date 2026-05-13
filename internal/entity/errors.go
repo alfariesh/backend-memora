@@ -16,4 +16,6 @@ var (
 	ErrReminderJobNotFound     = errors.New("reminder job not found")
 	ErrNotificationNotFound    = errors.New("notification not found")
 	ErrDeviceTokenNotFound     = errors.New("device token not found")
+	ErrInvalidDeviceToken      = errors.New("invalid device token")
+	ErrPushDeviceNotRegistered = errors.New("push device not registered")
 )

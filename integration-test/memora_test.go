@@ -155,6 +155,23 @@ func TestHTTPDevicesAndNotificationsV1(t *testing.T) {
 	}
 }
 
+func TestHTTPRegisterDeviceRejectsInvalidExpoTokenV1(t *testing.T) {
+	token := registerAndLogin(t)
+
+	ctx, cancel := context.WithTimeout(t.Context(), requestTimeout)
+	defer cancel()
+
+	resp, err := doAuthenticatedRequest(ctx, http.MethodPost, basePathV1+"/devices/", bytes.NewBufferString(`{"token":"fcm-token","platform":"android"}`), token)
+	if err != nil {
+		t.Fatalf("Register invalid device: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", resp.StatusCode)
+	}
+}
+
 func httpCreateImportantDay(t *testing.T, token string) importantDayResponse {
 	t.Helper()
 

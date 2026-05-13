@@ -78,3 +78,28 @@ func TestNormalizeReminderRules_Defaults(t *testing.T) {
 	assert.Equal(t, []int{7, 1, 0}, []int{rules[0].OffsetDays, rules[1].OffsetDays, rules[2].OffsetDays})
 	assert.Equal(t, entity.DefaultReminderChannels, rules[0].Channels)
 }
+
+func TestIsExpoPushToken(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name  string
+		token string
+		want  bool
+	}{
+		{name: "expo token", token: "ExpoPushToken[abc123]", want: true},
+		{name: "legacy exponent token", token: "ExponentPushToken[abc123]", want: true},
+		{name: "empty payload", token: "ExpoPushToken[]", want: false},
+		{name: "missing suffix", token: "ExpoPushToken[abc123", want: false},
+		{name: "native token", token: "fcm-token", want: false},
+		{name: "empty", token: "", want: false},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, tc.want, entity.IsExpoPushToken(tc.token))
+		})
+	}
+}

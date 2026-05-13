@@ -196,6 +196,10 @@ func (c *DeviceController) RegisterDevice(ctx context.Context, req *v1.RegisterD
 	if err != nil {
 		c.l.Error(err, "grpc - v1 - RegisterDevice")
 
+		if errors.Is(err, entity.ErrInvalidDeviceToken) {
+			return nil, status.Error(codes.InvalidArgument, "invalid device token")
+		}
+
 		return nil, status.Error(codes.Internal, "internal server error")
 	}
 

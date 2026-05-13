@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/evrone/go-clean-template/internal/entity"
 	"github.com/goccy/go-json"
 )
 
@@ -87,7 +88,7 @@ func (s *ExpoPushSender) Send(ctx context.Context, token, title, body string, da
 	}
 
 	if ticket.Status == "error" {
-		return "", fmt.Errorf("expo ticket error: %s", ticket.Message)
+		return "", expoTicketError(ticket)
 	}
 
 	return ticket.ID, nil
@@ -139,4 +140,12 @@ func expoErrorsMessage(errors []expoError) string {
 	}
 
 	return message
+}
+
+func expoTicketError(ticket expoTicket) error {
+	if ticket.Details["error"] == "DeviceNotRegistered" {
+		return fmt.Errorf("%w: %s", entity.ErrPushDeviceNotRegistered, ticket.Message)
+	}
+
+	return fmt.Errorf("expo ticket error: %s", ticket.Message)
 }

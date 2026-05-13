@@ -83,6 +83,7 @@ type (
 		Store(ctx context.Context, token *entity.DeviceToken) error
 		Delete(ctx context.Context, userID, id string) error
 		ListActiveByUser(ctx context.Context, userID string) ([]entity.DeviceToken, error)
+		Deactivate(ctx context.Context, userID, id string, at time.Time) error
 	}
 
 	// EmailSender -.

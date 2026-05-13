@@ -22,6 +22,10 @@ func New(r repo.DeviceTokenRepo) *UseCase {
 
 // Register -.
 func (uc *UseCase) Register(ctx context.Context, userID, token, platform, name string) (entity.DeviceToken, error) {
+	if !entity.IsExpoPushToken(token) {
+		return entity.DeviceToken{}, entity.ErrInvalidDeviceToken
+	}
+
 	now := time.Now().UTC()
 	deviceToken := entity.DeviceToken{
 		ID:        uuid.New().String(),
