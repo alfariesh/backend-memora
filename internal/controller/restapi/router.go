@@ -31,6 +31,7 @@ func NewRouter(
 	cfg *config.Config,
 	t usecase.Translation,
 	u usecase.User,
+	us usecase.UserSettings,
 	tk usecase.Task,
 	id usecase.ImportantDay,
 	n usecase.Notification,
@@ -60,6 +61,6 @@ func NewRouter(
 	// Routers
 	apiV1Group := app.Group("/v1")
 	{
-		v1.NewRoutes(apiV1Group, t, u, tk, id, n, d, jwtManager, l)
+		v1.NewRoutes(apiV1Group, t, u, us, tk, id, n, d, jwtManager, l)
 	}
 }

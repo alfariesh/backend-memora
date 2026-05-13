@@ -42,6 +42,7 @@ func main() {
 	userRepo := persistent.NewUserRepo(pg)
 	importantDayRepo := persistent.NewImportantDayRepo(pg)
 	reminderJobRepo := persistent.NewReminderJobRepo(pg)
+	userSettingsRepo := persistent.NewUserSettingsRepo(pg)
 	notificationRepo := persistent.NewNotificationRepo(pg)
 	deviceTokenRepo := persistent.NewDeviceTokenRepo(pg)
 
@@ -49,6 +50,7 @@ func main() {
 		reminderJobRepo,
 		importantDayRepo,
 		userRepo,
+		userSettingsRepo,
 		notificationRepo,
 		deviceTokenRepo,
 		webapi.NewResendSender(cfg.Resend.APIKey, cfg.Resend.FromEmail),

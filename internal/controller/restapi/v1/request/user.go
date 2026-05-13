@@ -1,5 +1,7 @@
 package request
 
+import "github.com/evrone/go-clean-template/internal/entity"
+
 // Register -.
 type Register struct {
 	Username string `json:"username" validate:"required,min=3,max=255" example:"johndoe"`
@@ -12,3 +14,18 @@ type Login struct {
 	Email    string `json:"email"    validate:"required,email" example:"john@example.com"`
 	Password string `json:"password" validate:"required"       example:"secret123"`
 } // @name v1.Login
+
+// UpdateUserSettings -.
+type UpdateUserSettings struct {
+	Timezone             string                   `json:"timezone"              validate:"omitempty,max=64"                  example:"Asia/Jakarta"`
+	ReminderTime         string                   `json:"reminder_time"         validate:"omitempty,datetime=15:04"          example:"09:00"`
+	NotificationChannels []entity.ReminderChannel `json:"notification_channels" validate:"omitempty,dive,oneof=email in_app push" example:"email"`
+} // @name v1.UpdateUserSettings
+
+func (r UpdateUserSettings) ToParams() entity.UserSettingsParams {
+	return entity.UserSettingsParams{
+		Timezone:             r.Timezone,
+		ReminderTime:         r.ReminderTime,
+		NotificationChannels: r.NotificationChannels,
+	}
+}

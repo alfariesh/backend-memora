@@ -58,6 +58,45 @@ Success: `200`
 
 Success: `200`
 
+## User Settings
+
+Settings control defaults for newly created important days and global notification channel preferences.
+
+### Get User Settings
+
+`GET /user/settings`
+
+Success: `200`
+
+```json
+{
+  "user_id": "uuid",
+  "timezone": "Asia/Jakarta",
+  "reminder_time": "09:00",
+  "notification_channels": ["email", "in_app", "push"],
+  "created_at": "2026-01-01T00:00:00Z",
+  "updated_at": "2026-01-01T00:00:00Z"
+}
+```
+
+If a user has not saved settings yet, backend returns defaults.
+
+### Update User Settings
+
+`PUT /user/settings`
+
+```json
+{
+  "timezone": "Asia/Makassar",
+  "reminder_time": "08:30",
+  "notification_channels": ["in_app", "push"]
+}
+```
+
+Success: `200`
+
+`notification_channels` accepts `email`, `in_app`, and `push`. Send an empty array to disable all reminder notification channels.
+
 ## Important Days
 
 Supported `type` values:
@@ -102,9 +141,9 @@ Success: `201`
 Notes:
 
 - `event_year` is optional. If present, backend returns anniversary count in upcoming responses.
-- `timezone` defaults to `Asia/Jakarta`.
-- `reminder_time` defaults to `09:00`.
-- `reminder_rules` defaults to `7`, `1`, and `0` days before with `email`, `in_app`, and `push`.
+- `timezone` defaults to the user's settings, then `Asia/Jakarta`.
+- `reminder_time` defaults to the user's settings, then `09:00`.
+- `reminder_rules` defaults to `7`, `1`, and `0` days before with the user's configured notification channels.
 - Yearly recurrence is currently the only recurrence mode.
 
 ### List Important Days
@@ -263,7 +302,7 @@ Success: `204`
 
 ## Common Status Codes
 
-- `400`: invalid request body, invalid date, invalid type, invalid Expo push token
+- `400`: invalid request body, invalid date, invalid type, invalid Expo push token, invalid user settings
 - `401`: missing or invalid JWT
 - `403`: resource belongs to another user
 - `404`: resource not found

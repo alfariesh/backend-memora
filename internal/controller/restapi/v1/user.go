@@ -122,3 +122,75 @@ func (r *V1) profile(ctx *fiber.Ctx) error {
 
 	return ctx.Status(http.StatusOK).JSON(user)
 }
+
+// @Summary     Get user settings
+// @Description Get reminder defaults and notification preferences for the current user
+// @ID          get-user-settings
+// @Tags        user
+// @Produce     json
+// @Success     200 {object} entity.UserSettings
+// @Failure     401 {object} response.Error
+// @Failure     500 {object} response.Error
+// @Security    BearerAuth
+// @Router      /user/settings [get]
+func (r *V1) getUserSettings(ctx *fiber.Ctx) error {
+	userID, ok := ctx.Locals("userID").(string)
+	if !ok {
+		return errorResponse(ctx, http.StatusUnauthorized, "unauthorized")
+	}
+
+	settings, err := r.us.Get(ctx.UserContext(), userID)
+	if err != nil {
+		r.l.Error(err, "restapi - v1 - getUserSettings")
+
+		return errorResponse(ctx, http.StatusInternalServerError, "internal server error")
+	}
+
+	return ctx.Status(http.StatusOK).JSON(settings)
+}
+
+// @Summary     Update user settings
+// @Description Update reminder defaults and notification preferences for the current user
+// @ID          update-user-settings
+// @Tags        user
+// @Accept      json
+// @Produce     json
+// @Param       request body     request.UpdateUserSettings true "User settings"
+// @Success     200     {object} entity.UserSettings
+// @Failure     400     {object} response.Error
+// @Failure     401     {object} response.Error
+// @Failure     500     {object} response.Error
+// @Security    BearerAuth
+// @Router      /user/settings [put]
+func (r *V1) updateUserSettings(ctx *fiber.Ctx) error {
+	userID, ok := ctx.Locals("userID").(string)
+	if !ok {
+		return errorResponse(ctx, http.StatusUnauthorized, "unauthorized")
+	}
+
+	var body request.UpdateUserSettings
+	if err := ctx.BodyParser(&body); err != nil {
+		r.l.Error(err, "restapi - v1 - updateUserSettings")
+
+		return errorResponse(ctx, http.StatusBadRequest, "invalid request body")
+	}
+
+	if err := r.v.Struct(body); err != nil {
+		r.l.Error(err, "restapi - v1 - updateUserSettings")
+
+		return errorResponse(ctx, http.StatusBadRequest, "invalid request body")
+	}
+
+	settings, err := r.us.Update(ctx.UserContext(), userID, body.ToParams())
+	if err != nil {
+		r.l.Error(err, "restapi - v1 - updateUserSettings")
+
+		if errors.Is(err, entity.ErrInvalidUserSettings) {
+			return errorResponse(ctx, http.StatusBadRequest, "invalid user settings")
+		}
+
+		return errorResponse(ctx, http.StatusInternalServerError, "internal server error")
+	}
+
+	return ctx.Status(http.StatusOK).JSON(settings)
+}

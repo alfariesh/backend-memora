@@ -12,6 +12,7 @@ package usecase_test
 import (
 	context "context"
 	reflect "reflect"
+	time "time"
 
 	entity "github.com/evrone/go-clean-template/internal/entity"
 	gomock "go.uber.org/mock/gomock"
@@ -140,6 +141,60 @@ func (mr *MockUserMockRecorder) Register(ctx, username, email, password any) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Register", reflect.TypeOf((*MockUser)(nil).Register), ctx, username, email, password)
 }
 
+// MockUserSettings is a mock of UserSettings interface.
+type MockUserSettings struct {
+	ctrl     *gomock.Controller
+	recorder *MockUserSettingsMockRecorder
+	isgomock struct{}
+}
+
+// MockUserSettingsMockRecorder is the mock recorder for MockUserSettings.
+type MockUserSettingsMockRecorder struct {
+	mock *MockUserSettings
+}
+
+// NewMockUserSettings creates a new mock instance.
+func NewMockUserSettings(ctrl *gomock.Controller) *MockUserSettings {
+	mock := &MockUserSettings{ctrl: ctrl}
+	mock.recorder = &MockUserSettingsMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockUserSettings) EXPECT() *MockUserSettingsMockRecorder {
+	return m.recorder
+}
+
+// Get mocks base method.
+func (m *MockUserSettings) Get(ctx context.Context, userID string) (entity.UserSettings, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Get", ctx, userID)
+	ret0, _ := ret[0].(entity.UserSettings)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Get indicates an expected call of Get.
+func (mr *MockUserSettingsMockRecorder) Get(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockUserSettings)(nil).Get), ctx, userID)
+}
+
+// Update mocks base method.
+func (m *MockUserSettings) Update(ctx context.Context, userID string, params entity.UserSettingsParams) (entity.UserSettings, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Update", ctx, userID, params)
+	ret0, _ := ret[0].(entity.UserSettings)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Update indicates an expected call of Update.
+func (mr *MockUserSettingsMockRecorder) Update(ctx, userID, params any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockUserSettings)(nil).Update), ctx, userID, params)
+}
+
 // MockTask is a mock of Task interface.
 type MockTask struct {
 	ctrl     *gomock.Controller
@@ -252,4 +307,295 @@ func (m *MockTask) Update(ctx context.Context, userID, taskID, title, descriptio
 func (mr *MockTaskMockRecorder) Update(ctx, userID, taskID, title, description any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockTask)(nil).Update), ctx, userID, taskID, title, description)
+}
+
+// MockImportantDay is a mock of ImportantDay interface.
+type MockImportantDay struct {
+	ctrl     *gomock.Controller
+	recorder *MockImportantDayMockRecorder
+	isgomock struct{}
+}
+
+// MockImportantDayMockRecorder is the mock recorder for MockImportantDay.
+type MockImportantDayMockRecorder struct {
+	mock *MockImportantDay
+}
+
+// NewMockImportantDay creates a new mock instance.
+func NewMockImportantDay(ctrl *gomock.Controller) *MockImportantDay {
+	mock := &MockImportantDay{ctrl: ctrl}
+	mock.recorder = &MockImportantDayMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockImportantDay) EXPECT() *MockImportantDayMockRecorder {
+	return m.recorder
+}
+
+// Create mocks base method.
+func (m *MockImportantDay) Create(ctx context.Context, userID string, params entity.ImportantDayParams) (entity.ImportantDay, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Create", ctx, userID, params)
+	ret0, _ := ret[0].(entity.ImportantDay)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Create indicates an expected call of Create.
+func (mr *MockImportantDayMockRecorder) Create(ctx, userID, params any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockImportantDay)(nil).Create), ctx, userID, params)
+}
+
+// Delete mocks base method.
+func (m *MockImportantDay) Delete(ctx context.Context, userID, id string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Delete", ctx, userID, id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Delete indicates an expected call of Delete.
+func (mr *MockImportantDayMockRecorder) Delete(ctx, userID, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockImportantDay)(nil).Delete), ctx, userID, id)
+}
+
+// Get mocks base method.
+func (m *MockImportantDay) Get(ctx context.Context, userID, id string) (entity.ImportantDay, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Get", ctx, userID, id)
+	ret0, _ := ret[0].(entity.ImportantDay)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Get indicates an expected call of Get.
+func (mr *MockImportantDayMockRecorder) Get(ctx, userID, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockImportantDay)(nil).Get), ctx, userID, id)
+}
+
+// List mocks base method.
+func (m *MockImportantDay) List(ctx context.Context, userID string, dayType *entity.ImportantDayType, limit, offset int) ([]entity.ImportantDay, int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "List", ctx, userID, dayType, limit, offset)
+	ret0, _ := ret[0].([]entity.ImportantDay)
+	ret1, _ := ret[1].(int)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// List indicates an expected call of List.
+func (mr *MockImportantDayMockRecorder) List(ctx, userID, dayType, limit, offset any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockImportantDay)(nil).List), ctx, userID, dayType, limit, offset)
+}
+
+// ReplaceReminderRules mocks base method.
+func (m *MockImportantDay) ReplaceReminderRules(ctx context.Context, userID, id string, rules []entity.ReminderRuleParams) ([]entity.ReminderRule, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReplaceReminderRules", ctx, userID, id, rules)
+	ret0, _ := ret[0].([]entity.ReminderRule)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ReplaceReminderRules indicates an expected call of ReplaceReminderRules.
+func (mr *MockImportantDayMockRecorder) ReplaceReminderRules(ctx, userID, id, rules any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReplaceReminderRules", reflect.TypeOf((*MockImportantDay)(nil).ReplaceReminderRules), ctx, userID, id, rules)
+}
+
+// Upcoming mocks base method.
+func (m *MockImportantDay) Upcoming(ctx context.Context, userID string, from time.Time, days, limit, offset int) ([]entity.ImportantDayUpcoming, int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Upcoming", ctx, userID, from, days, limit, offset)
+	ret0, _ := ret[0].([]entity.ImportantDayUpcoming)
+	ret1, _ := ret[1].(int)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// Upcoming indicates an expected call of Upcoming.
+func (mr *MockImportantDayMockRecorder) Upcoming(ctx, userID, from, days, limit, offset any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Upcoming", reflect.TypeOf((*MockImportantDay)(nil).Upcoming), ctx, userID, from, days, limit, offset)
+}
+
+// Update mocks base method.
+func (m *MockImportantDay) Update(ctx context.Context, userID, id string, params entity.ImportantDayParams) (entity.ImportantDay, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Update", ctx, userID, id, params)
+	ret0, _ := ret[0].(entity.ImportantDay)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Update indicates an expected call of Update.
+func (mr *MockImportantDayMockRecorder) Update(ctx, userID, id, params any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockImportantDay)(nil).Update), ctx, userID, id, params)
+}
+
+// MockNotification is a mock of Notification interface.
+type MockNotification struct {
+	ctrl     *gomock.Controller
+	recorder *MockNotificationMockRecorder
+	isgomock struct{}
+}
+
+// MockNotificationMockRecorder is the mock recorder for MockNotification.
+type MockNotificationMockRecorder struct {
+	mock *MockNotification
+}
+
+// NewMockNotification creates a new mock instance.
+func NewMockNotification(ctrl *gomock.Controller) *MockNotification {
+	mock := &MockNotification{ctrl: ctrl}
+	mock.recorder = &MockNotificationMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockNotification) EXPECT() *MockNotificationMockRecorder {
+	return m.recorder
+}
+
+// List mocks base method.
+func (m *MockNotification) List(ctx context.Context, userID string, unreadOnly bool, limit, offset int) ([]entity.Notification, int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "List", ctx, userID, unreadOnly, limit, offset)
+	ret0, _ := ret[0].([]entity.Notification)
+	ret1, _ := ret[1].(int)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// List indicates an expected call of List.
+func (mr *MockNotificationMockRecorder) List(ctx, userID, unreadOnly, limit, offset any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockNotification)(nil).List), ctx, userID, unreadOnly, limit, offset)
+}
+
+// MarkAllRead mocks base method.
+func (m *MockNotification) MarkAllRead(ctx context.Context, userID string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MarkAllRead", ctx, userID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// MarkAllRead indicates an expected call of MarkAllRead.
+func (mr *MockNotificationMockRecorder) MarkAllRead(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkAllRead", reflect.TypeOf((*MockNotification)(nil).MarkAllRead), ctx, userID)
+}
+
+// MarkRead mocks base method.
+func (m *MockNotification) MarkRead(ctx context.Context, userID, id string) (entity.Notification, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MarkRead", ctx, userID, id)
+	ret0, _ := ret[0].(entity.Notification)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// MarkRead indicates an expected call of MarkRead.
+func (mr *MockNotificationMockRecorder) MarkRead(ctx, userID, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkRead", reflect.TypeOf((*MockNotification)(nil).MarkRead), ctx, userID, id)
+}
+
+// MockDeviceToken is a mock of DeviceToken interface.
+type MockDeviceToken struct {
+	ctrl     *gomock.Controller
+	recorder *MockDeviceTokenMockRecorder
+	isgomock struct{}
+}
+
+// MockDeviceTokenMockRecorder is the mock recorder for MockDeviceToken.
+type MockDeviceTokenMockRecorder struct {
+	mock *MockDeviceToken
+}
+
+// NewMockDeviceToken creates a new mock instance.
+func NewMockDeviceToken(ctrl *gomock.Controller) *MockDeviceToken {
+	mock := &MockDeviceToken{ctrl: ctrl}
+	mock.recorder = &MockDeviceTokenMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockDeviceToken) EXPECT() *MockDeviceTokenMockRecorder {
+	return m.recorder
+}
+
+// Delete mocks base method.
+func (m *MockDeviceToken) Delete(ctx context.Context, userID, id string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Delete", ctx, userID, id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Delete indicates an expected call of Delete.
+func (mr *MockDeviceTokenMockRecorder) Delete(ctx, userID, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockDeviceToken)(nil).Delete), ctx, userID, id)
+}
+
+// Register mocks base method.
+func (m *MockDeviceToken) Register(ctx context.Context, userID, token, platform, name string) (entity.DeviceToken, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Register", ctx, userID, token, platform, name)
+	ret0, _ := ret[0].(entity.DeviceToken)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Register indicates an expected call of Register.
+func (mr *MockDeviceTokenMockRecorder) Register(ctx, userID, token, platform, name any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Register", reflect.TypeOf((*MockDeviceToken)(nil).Register), ctx, userID, token, platform, name)
+}
+
+// MockReminderWorker is a mock of ReminderWorker interface.
+type MockReminderWorker struct {
+	ctrl     *gomock.Controller
+	recorder *MockReminderWorkerMockRecorder
+	isgomock struct{}
+}
+
+// MockReminderWorkerMockRecorder is the mock recorder for MockReminderWorker.
+type MockReminderWorkerMockRecorder struct {
+	mock *MockReminderWorker
+}
+
+// NewMockReminderWorker creates a new mock instance.
+func NewMockReminderWorker(ctrl *gomock.Controller) *MockReminderWorker {
+	mock := &MockReminderWorker{ctrl: ctrl}
+	mock.recorder = &MockReminderWorkerMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockReminderWorker) EXPECT() *MockReminderWorkerMockRecorder {
+	return m.recorder
+}
+
+// RunOnce mocks base method.
+func (m *MockReminderWorker) RunOnce(ctx context.Context, now time.Time, limit int) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RunOnce", ctx, now, limit)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RunOnce indicates an expected call of RunOnce.
+func (mr *MockReminderWorkerMockRecorder) RunOnce(ctx, now, limit any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunOnce", reflect.TypeOf((*MockReminderWorker)(nil).RunOnce), ctx, now, limit)
 }

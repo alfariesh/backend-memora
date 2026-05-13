@@ -8,11 +8,13 @@ import (
 )
 
 type importantDayResponse struct {
-	ID         string `json:"id"`
-	Title      string `json:"title"`
-	Type       string `json:"type"`
-	EventMonth int    `json:"event_month"`
-	EventDay   int    `json:"event_day"`
+	ID           string `json:"id"`
+	Title        string `json:"title"`
+	Type         string `json:"type"`
+	EventMonth   int    `json:"event_month"`
+	EventDay     int    `json:"event_day"`
+	Timezone     string `json:"timezone"`
+	ReminderTime string `json:"reminder_time"`
 }
 
 func TestHTTPImportantDaysV1(t *testing.T) {
@@ -100,6 +102,74 @@ func TestHTTPImportantDayRemindersV1(t *testing.T) {
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+}
+
+func TestHTTPUserSettingsV1(t *testing.T) {
+	token := registerAndLogin(t)
+
+	ctx, cancel := context.WithTimeout(t.Context(), requestTimeout)
+	defer cancel()
+
+	resp, err := doAuthenticatedRequest(ctx, http.MethodGet, basePathV1+"/user/settings", http.NoBody, token)
+	if err != nil {
+		t.Fatalf("Get user settings: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+
+	type settingsResponse struct {
+		Timezone             string   `json:"timezone"`
+		ReminderTime         string   `json:"reminder_time"`
+		NotificationChannels []string `json:"notification_channels"`
+	}
+
+	defaults := parseJSON[settingsResponse](t, resp)
+	if defaults.Timezone != "Asia/Jakarta" || defaults.ReminderTime != "09:00" {
+		t.Fatalf("unexpected default settings: %+v", defaults)
+	}
+
+	ctx, cancel = context.WithTimeout(t.Context(), requestTimeout)
+	defer cancel()
+
+	updateBody := `{"timezone":"Asia/Makassar","reminder_time":"08:30","notification_channels":["in_app","push"]}`
+	resp, err = doAuthenticatedRequest(ctx, http.MethodPut, basePathV1+"/user/settings", bytes.NewBufferString(updateBody), token)
+	if err != nil {
+		t.Fatalf("Update user settings: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+
+	updated := parseJSON[settingsResponse](t, resp)
+	if updated.Timezone != "Asia/Makassar" || updated.ReminderTime != "08:30" {
+		t.Fatalf("unexpected updated settings: %+v", updated)
+	}
+	if len(updated.NotificationChannels) != 2 || updated.NotificationChannels[0] != "in_app" || updated.NotificationChannels[1] != "push" {
+		t.Fatalf("unexpected notification channels: %+v", updated.NotificationChannels)
+	}
+
+	created := httpCreateImportantDay(t, token)
+	if created.Timezone != "Asia/Makassar" || created.ReminderTime != "08:30" {
+		t.Fatalf("expected important day to use user settings, got timezone=%s reminder_time=%s", created.Timezone, created.ReminderTime)
+	}
+
+	ctx, cancel = context.WithTimeout(t.Context(), requestTimeout)
+	defer cancel()
+
+	resp, err = doAuthenticatedRequest(ctx, http.MethodPut, basePathV1+"/user/settings", bytes.NewBufferString(`{"timezone":"Invalid/Zone","reminder_time":"08:30","notification_channels":["in_app"]}`), token)
+	if err != nil {
+		t.Fatalf("Update invalid user settings: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", resp.StatusCode)
 	}
 }
 

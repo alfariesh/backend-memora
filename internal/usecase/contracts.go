@@ -24,6 +24,12 @@ type (
 		GetUser(ctx context.Context, userID string) (entity.User, error)
 	}
 
+	// UserSettings -.
+	UserSettings interface {
+		Get(ctx context.Context, userID string) (entity.UserSettings, error)
+		Update(ctx context.Context, userID string, params entity.UserSettingsParams) (entity.UserSettings, error)
+	}
+
 	// Task -.
 	Task interface {
 		Create(ctx context.Context, userID, title, description string) (entity.Task, error)

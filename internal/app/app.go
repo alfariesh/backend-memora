@@ -22,6 +22,7 @@ import (
 	"github.com/evrone/go-clean-template/internal/usecase/task"
 	"github.com/evrone/go-clean-template/internal/usecase/translation"
 	"github.com/evrone/go-clean-template/internal/usecase/user"
+	"github.com/evrone/go-clean-template/internal/usecase/usersettings"
 	"github.com/evrone/go-clean-template/pkg/grpcserver"
 	"github.com/evrone/go-clean-template/pkg/httpserver"
 	"github.com/evrone/go-clean-template/pkg/jwt"
@@ -35,6 +36,7 @@ import (
 type useCases struct {
 	translation  *translation.UseCase
 	user         *user.UseCase
+	userSettings *usersettings.UseCase
 	task         *task.UseCase
 	importantDay *importantday.UseCase
 	notification *notification.UseCase
@@ -51,6 +53,7 @@ type servers struct {
 
 func initUseCases(cfg *config.Config, pg *postgres.Postgres, jwtManager *jwt.Manager) useCases {
 	userRepo := persistent.NewUserRepo(pg)
+	userSettingsRepo := persistent.NewUserSettingsRepo(pg)
 	taskRepo := persistent.NewTaskRepo(pg)
 	translationRepo := persistent.NewTranslationRepo(pg)
 	importantDayRepo := persistent.NewImportantDayRepo(pg)
@@ -63,15 +66,17 @@ func initUseCases(cfg *config.Config, pg *postgres.Postgres, jwtManager *jwt.Man
 
 	return useCases{
 		user:         user.New(userRepo, jwtManager),
+		userSettings: usersettings.New(userSettingsRepo),
 		task:         task.New(taskRepo),
 		translation:  translation.New(translationRepo, webapi.New()),
-		importantDay: importantday.New(importantDayRepo, reminderRuleRepo, reminderJobRepo),
+		importantDay: importantday.New(importantDayRepo, reminderRuleRepo, reminderJobRepo, userSettingsRepo),
 		notification: notification.New(notificationRepo),
 		device:       device.New(deviceTokenRepo),
 		reminder: reminder.New(
 			reminderJobRepo,
 			importantDayRepo,
 			userRepo,
+			userSettingsRepo,
 			notificationRepo,
 			deviceTokenRepo,
 			emailSender,
@@ -106,7 +111,7 @@ func initServers(cfg *config.Config, uc useCases, jwtManager *jwt.Manager, l log
 
 	// HTTP Server
 	httpServer := httpserver.New(l, httpserver.Port(cfg.HTTP.Port), httpserver.Prefork(cfg.HTTP.UsePreforkMode))
-	restapi.NewRouter(httpServer.App, cfg, uc.translation, uc.user, uc.task, uc.importantDay, uc.notification, uc.device, jwtManager, l)
+	restapi.NewRouter(httpServer.App, cfg, uc.translation, uc.user, uc.userSettings, uc.task, uc.importantDay, uc.notification, uc.device, jwtManager, l)
 
 	return servers{
 		rmq:  rmqServer,

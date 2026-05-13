@@ -10,6 +10,7 @@ import (
 type V1 struct {
 	t  usecase.Translation
 	u  usecase.User
+	us usecase.UserSettings
 	tk usecase.Task
 	id usecase.ImportantDay
 	n  usecase.Notification

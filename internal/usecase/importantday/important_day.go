@@ -2,6 +2,7 @@ package importantday
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"time"
@@ -13,23 +14,32 @@ import (
 
 // UseCase -.
 type UseCase struct {
-	dayRepo  repo.ImportantDayRepo
-	ruleRepo repo.ReminderRuleRepo
-	jobRepo  repo.ReminderJobRepo
+	dayRepo      repo.ImportantDayRepo
+	ruleRepo     repo.ReminderRuleRepo
+	jobRepo      repo.ReminderJobRepo
+	settingsRepo repo.UserSettingsRepo
 }
 
 // New -.
-func New(dayRepo repo.ImportantDayRepo, ruleRepo repo.ReminderRuleRepo, jobRepo repo.ReminderJobRepo) *UseCase {
+func New(dayRepo repo.ImportantDayRepo, ruleRepo repo.ReminderRuleRepo, jobRepo repo.ReminderJobRepo, settingsRepo repo.UserSettingsRepo) *UseCase {
 	return &UseCase{
-		dayRepo:  dayRepo,
-		ruleRepo: ruleRepo,
-		jobRepo:  jobRepo,
+		dayRepo:      dayRepo,
+		ruleRepo:     ruleRepo,
+		jobRepo:      jobRepo,
+		settingsRepo: settingsRepo,
 	}
 }
 
 // Create -.
 func (uc *UseCase) Create(ctx context.Context, userID string, params entity.ImportantDayParams) (entity.ImportantDay, error) {
-	if err := entity.NormalizeImportantDay(&params); err != nil {
+	settings, err := uc.settings(ctx, userID)
+	if err != nil {
+		return entity.ImportantDay{}, fmt.Errorf("ImportantDayUseCase - Create - uc.settings: %w", err)
+	}
+
+	applySettingsDefaults(&params, settings)
+
+	if err = entity.NormalizeImportantDay(&params); err != nil {
 		return entity.ImportantDay{}, err
 	}
 
@@ -56,7 +66,7 @@ func (uc *UseCase) Create(ctx context.Context, userID string, params entity.Impo
 		return entity.ImportantDay{}, fmt.Errorf("ImportantDayUseCase - Create - uc.dayRepo.Store: %w", err)
 	}
 
-	rules := buildReminderRules(userID, day.ID, entity.NormalizeReminderRules(params.ReminderRules), now)
+	rules := buildReminderRules(userID, day.ID, entity.NormalizeReminderRulesWithChannels(params.ReminderRules, settings.NotificationChannels), now)
 	if err := uc.ruleRepo.ReplaceForImportantDay(ctx, userID, day.ID, rules); err != nil {
 		_ = uc.dayRepo.Delete(ctx, userID, day.ID)
 
@@ -165,7 +175,14 @@ func (uc *UseCase) Upcoming(ctx context.Context, userID string, from time.Time, 
 
 // Update -.
 func (uc *UseCase) Update(ctx context.Context, userID, id string, params entity.ImportantDayParams) (entity.ImportantDay, error) {
-	if err := entity.NormalizeImportantDay(&params); err != nil {
+	settings, err := uc.settings(ctx, userID)
+	if err != nil {
+		return entity.ImportantDay{}, fmt.Errorf("ImportantDayUseCase - Update - uc.settings: %w", err)
+	}
+
+	applySettingsDefaults(&params, settings)
+
+	if err = entity.NormalizeImportantDay(&params); err != nil {
 		return entity.ImportantDay{}, err
 	}
 
@@ -221,8 +238,13 @@ func (uc *UseCase) ReplaceReminderRules(ctx context.Context, userID, id string, 
 		return nil, fmt.Errorf("ImportantDayUseCase - ReplaceReminderRules - uc.dayRepo.GetByID: %w", err)
 	}
 
+	settings, err := uc.settings(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("ImportantDayUseCase - ReplaceReminderRules - uc.settings: %w", err)
+	}
+
 	now := time.Now().UTC()
-	rules := buildReminderRules(userID, id, entity.NormalizeReminderRules(params), now)
+	rules := buildReminderRules(userID, id, entity.NormalizeReminderRulesWithChannels(params, settings.NotificationChannels), now)
 
 	if err = uc.ruleRepo.ReplaceForImportantDay(ctx, userID, id, rules); err != nil {
 		return nil, fmt.Errorf("ImportantDayUseCase - ReplaceReminderRules - uc.ruleRepo.ReplaceForImportantDay: %w", err)
@@ -269,6 +291,34 @@ func (uc *UseCase) scheduleJobs(ctx context.Context, day entity.ImportantDay, ru
 	}
 
 	return uc.jobRepo.ReplacePendingForImportantDay(ctx, day.UserID, day.ID, jobs)
+}
+
+func (uc *UseCase) settings(ctx context.Context, userID string) (entity.UserSettings, error) {
+	now := time.Now().UTC()
+	if uc.settingsRepo == nil {
+		return entity.DefaultUserSettings(userID, now), nil
+	}
+
+	settings, err := uc.settingsRepo.Get(ctx, userID)
+	if err != nil {
+		if errors.Is(err, entity.ErrUserSettingsNotFound) {
+			return entity.DefaultUserSettings(userID, now), nil
+		}
+
+		return entity.UserSettings{}, err
+	}
+
+	return settings, nil
+}
+
+func applySettingsDefaults(params *entity.ImportantDayParams, settings entity.UserSettings) {
+	if params.Timezone == "" {
+		params.Timezone = settings.Timezone
+	}
+
+	if params.ReminderTime == "" {
+		params.ReminderTime = settings.ReminderTime
+	}
 }
 
 func buildReminderRules(userID, importantDayID string, params []entity.ReminderRuleParams, now time.Time) []entity.ReminderRule {

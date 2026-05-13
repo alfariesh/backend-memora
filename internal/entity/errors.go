@@ -18,4 +18,6 @@ var (
 	ErrDeviceTokenNotFound     = errors.New("device token not found")
 	ErrInvalidDeviceToken      = errors.New("invalid device token")
 	ErrPushDeviceNotRegistered = errors.New("push device not registered")
+	ErrUserSettingsNotFound    = errors.New("user settings not found")
+	ErrInvalidUserSettings     = errors.New("invalid user settings")
 )

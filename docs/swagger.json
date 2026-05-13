@@ -1320,6 +1320,100 @@
                     }
                 ]
             }
+        },
+        "/user/settings": {
+            "get": {
+                "description": "Get reminder defaults and notification preferences for the current user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "Get user settings",
+                "operationId": "get-user-settings",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entity.UserSettings"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            },
+            "put": {
+                "description": "Update reminder defaults and notification preferences for the current user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "Update user settings",
+                "operationId": "update-user-settings",
+                "parameters": [
+                    {
+                        "description": "User settings",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/v1.UpdateUserSettings"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entity.UserSettings"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "definitions": {
@@ -1750,6 +1844,40 @@
                 }
             }
         },
+        "entity.UserSettings": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string",
+                    "example": "2026-01-01T00:00:00Z"
+                },
+                "notification_channels": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entity.ReminderChannel"
+                    },
+                    "example": [
+                        "email"
+                    ]
+                },
+                "reminder_time": {
+                    "type": "string",
+                    "example": "09:00"
+                },
+                "timezone": {
+                    "type": "string",
+                    "example": "Asia/Jakarta"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "example": "2026-01-01T00:00:00Z"
+                },
+                "user_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                }
+            }
+        },
         "v1.CreateImportantDay": {
             "type": "object",
             "required": [
@@ -2155,6 +2283,29 @@
                     "type": "string",
                     "maxLength": 255,
                     "example": "Updated task"
+                }
+            }
+        },
+        "v1.UpdateUserSettings": {
+            "type": "object",
+            "properties": {
+                "notification_channels": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entity.ReminderChannel"
+                    },
+                    "example": [
+                        "email"
+                    ]
+                },
+                "reminder_time": {
+                    "type": "string",
+                    "example": "09:00"
+                },
+                "timezone": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "example": "Asia/Jakarta"
                 }
             }
         }

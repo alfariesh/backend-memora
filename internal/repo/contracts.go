@@ -29,6 +29,12 @@ type (
 		GetByEmail(ctx context.Context, email string) (entity.User, error)
 	}
 
+	// UserSettingsRepo -.
+	UserSettingsRepo interface {
+		Get(ctx context.Context, userID string) (entity.UserSettings, error)
+		Upsert(ctx context.Context, settings *entity.UserSettings) error
+	}
+
 	// TaskRepo -.
 	TaskRepo interface {
 		Store(ctx context.Context, task *entity.Task) error

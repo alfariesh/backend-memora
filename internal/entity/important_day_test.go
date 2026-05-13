@@ -79,6 +79,54 @@ func TestNormalizeReminderRules_Defaults(t *testing.T) {
 	assert.Equal(t, entity.DefaultReminderChannels, rules[0].Channels)
 }
 
+func TestNormalizeReminderRulesWithChannels(t *testing.T) {
+	t.Parallel()
+
+	rules := entity.NormalizeReminderRulesWithChannels(nil, []entity.ReminderChannel{entity.ReminderChannelInApp})
+
+	assert.Len(t, rules, 3)
+	assert.Equal(t, []entity.ReminderChannel{entity.ReminderChannelInApp}, rules[0].Channels)
+}
+
+func TestNormalizeUserSettings(t *testing.T) {
+	t.Parallel()
+
+	params := entity.UserSettingsParams{}
+	require.NoError(t, entity.NormalizeUserSettings(&params))
+
+	assert.Equal(t, entity.DefaultTimezone, params.Timezone)
+	assert.Equal(t, entity.DefaultReminderTime, params.ReminderTime)
+	assert.Equal(t, entity.DefaultReminderChannels, params.NotificationChannels)
+}
+
+func TestNormalizeUserSettings_EmptyChannels(t *testing.T) {
+	t.Parallel()
+
+	params := entity.UserSettingsParams{NotificationChannels: []entity.ReminderChannel{}}
+	require.NoError(t, entity.NormalizeUserSettings(&params))
+
+	assert.Empty(t, params.NotificationChannels)
+}
+
+func TestNormalizeUserSettings_InvalidTimezone(t *testing.T) {
+	t.Parallel()
+
+	params := entity.UserSettingsParams{Timezone: "Invalid/Zone"}
+
+	assert.ErrorIs(t, entity.NormalizeUserSettings(&params), entity.ErrInvalidUserSettings)
+}
+
+func TestFilterReminderChannels(t *testing.T) {
+	t.Parallel()
+
+	filtered := entity.FilterReminderChannels(
+		[]entity.ReminderChannel{entity.ReminderChannelEmail, entity.ReminderChannelInApp, entity.ReminderChannelPush},
+		[]entity.ReminderChannel{entity.ReminderChannelInApp, entity.ReminderChannelPush},
+	)
+
+	assert.Equal(t, []entity.ReminderChannel{entity.ReminderChannelInApp, entity.ReminderChannelPush}, filtered)
+}
+
 func TestIsExpoPushToken(t *testing.T) {
 	t.Parallel()
 

@@ -21,6 +21,7 @@ type UseCase struct {
 	jobRepo          repo.ReminderJobRepo
 	dayRepo          repo.ImportantDayRepo
 	userRepo         repo.UserRepo
+	settingsRepo     repo.UserSettingsRepo
 	notificationRepo repo.NotificationRepo
 	deviceRepo       repo.DeviceTokenRepo
 	emailSender      repo.EmailSender
@@ -32,6 +33,7 @@ func New(
 	jobRepo repo.ReminderJobRepo,
 	dayRepo repo.ImportantDayRepo,
 	userRepo repo.UserRepo,
+	settingsRepo repo.UserSettingsRepo,
 	notificationRepo repo.NotificationRepo,
 	deviceRepo repo.DeviceTokenRepo,
 	emailSender repo.EmailSender,
@@ -41,6 +43,7 @@ func New(
 		jobRepo:          jobRepo,
 		dayRepo:          dayRepo,
 		userRepo:         userRepo,
+		settingsRepo:     settingsRepo,
 		notificationRepo: notificationRepo,
 		deviceRepo:       deviceRepo,
 		emailSender:      emailSender,
@@ -81,15 +84,20 @@ func (uc *UseCase) deliverJob(ctx context.Context, job entity.ReminderJob, now t
 	}
 
 	title, body := reminderCopy(day, job)
+	channels, err := uc.enabledChannels(ctx, job)
+	if err != nil {
+		return fmt.Errorf("ReminderUseCase - deliverJob - uc.enabledChannels: %w", err)
+	}
+
 	failures := make([]string, 0)
 
-	if hasChannel(job.Channels, entity.ReminderChannelEmail) {
+	if hasChannel(channels, entity.ReminderChannelEmail) {
 		if _, err = uc.emailSender.Send(ctx, user.Email, title, reminderHTML(user, day, job, body)); err != nil {
 			failures = append(failures, "email: "+err.Error())
 		}
 	}
 
-	if hasChannel(job.Channels, entity.ReminderChannelPush) {
+	if hasChannel(channels, entity.ReminderChannelPush) {
 		if err = uc.sendPush(ctx, job, title, body); err != nil {
 			failures = append(failures, "push: "+err.Error())
 		}
@@ -99,7 +107,7 @@ func (uc *UseCase) deliverJob(ctx context.Context, job entity.ReminderJob, now t
 		return errors.New(strings.Join(failures, "; "))
 	}
 
-	if hasChannel(job.Channels, entity.ReminderChannelInApp) {
+	if hasChannel(channels, entity.ReminderChannelInApp) {
 		if err = uc.storeNotification(ctx, job, title, body, now); err != nil {
 			return fmt.Errorf("in_app: %w", err)
 		}
@@ -114,6 +122,23 @@ func (uc *UseCase) deliverJob(ctx context.Context, job entity.ReminderJob, now t
 	}
 
 	return nil
+}
+
+func (uc *UseCase) enabledChannels(ctx context.Context, job entity.ReminderJob) ([]entity.ReminderChannel, error) {
+	if uc.settingsRepo == nil {
+		return job.Channels, nil
+	}
+
+	settings, err := uc.settingsRepo.Get(ctx, job.UserID)
+	if err != nil {
+		if errors.Is(err, entity.ErrUserSettingsNotFound) {
+			return job.Channels, nil
+		}
+
+		return nil, err
+	}
+
+	return entity.FilterReminderChannels(job.Channels, settings.NotificationChannels), nil
 }
 
 func (uc *UseCase) sendPush(ctx context.Context, job entity.ReminderJob, title, body string) error {

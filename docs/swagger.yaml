@@ -305,6 +305,30 @@ definitions:
         example: johndoe
         type: string
     type: object
+  entity.UserSettings:
+    properties:
+      created_at:
+        example: "2026-01-01T00:00:00Z"
+        type: string
+      notification_channels:
+        example:
+        - email
+        items:
+          $ref: '#/definitions/entity.ReminderChannel'
+        type: array
+      reminder_time:
+        example: "09:00"
+        type: string
+      timezone:
+        example: Asia/Jakarta
+        type: string
+      updated_at:
+        example: "2026-01-01T00:00:00Z"
+        type: string
+      user_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+    type: object
   v1.CreateImportantDay:
     properties:
       description:
@@ -602,6 +626,22 @@ definitions:
         type: string
     required:
     - title
+    type: object
+  v1.UpdateUserSettings:
+    properties:
+      notification_channels:
+        example:
+        - email
+        items:
+          $ref: '#/definitions/entity.ReminderChannel'
+        type: array
+      reminder_time:
+        example: "09:00"
+        type: string
+      timezone:
+        example: Asia/Jakarta
+        maxLength: 64
+        type: string
     type: object
 host: localhost:8080
 info:
@@ -1463,6 +1503,68 @@ paths:
       security:
       - BearerAuth: []
       summary: Get profile
+      tags:
+      - user
+  /user/settings:
+    get:
+      description: Get reminder defaults and notification preferences for the current
+        user
+      operationId: get-user-settings
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.UserSettings'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/v1.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.Error'
+      security:
+      - BearerAuth: []
+      summary: Get user settings
+      tags:
+      - user
+    put:
+      consumes:
+      - application/json
+      description: Update reminder defaults and notification preferences for the current
+        user
+      operationId: update-user-settings
+      parameters:
+      - description: User settings
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/v1.UpdateUserSettings'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.UserSettings'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.Error'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/v1.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.Error'
+      security:
+      - BearerAuth: []
+      summary: Update user settings
       tags:
       - user
 securityDefinitions:
