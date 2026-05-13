@@ -464,3 +464,12 @@ REMINDER_WORKER_POLL_INTERVAL=1m
 ```
 
 `EXPO_PUSH_ACCESS_TOKEN` is optional unless Expo push security is enabled.
+
+Worker delivery behavior:
+
+- Claims due pending reminder jobs in batches.
+- Filters each job's channels through the user's current `notification_channels`.
+- Sends email and push first; if either channel fails, the job is marked failed and in-app notification is not created.
+- Deactivates Expo tokens when Expo returns `DeviceNotRegistered`, then continues the job.
+- Retries failed jobs until the third attempt. After that, the job remains failed.
+- Marks successful jobs sent and schedules the next yearly occurrence with the same rule, offset, and channels.
