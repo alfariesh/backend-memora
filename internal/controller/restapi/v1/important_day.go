@@ -278,6 +278,43 @@ func (r *V1) replaceImportantDayReminders(ctx *fiber.Ctx) error {
 	return ctx.Status(http.StatusOK).JSON(response.ReminderRuleList{Rules: rules})
 }
 
+// @Summary     Get important day reminders
+// @Description Get reminder rules for an important day
+// @ID          get-important-day-reminders
+// @Tags        important-days
+// @Produce     json
+// @Param       id  path     string true "Important day ID"
+// @Success     200 {object} response.ReminderRuleList
+// @Failure     401 {object} response.Error
+// @Failure     403 {object} response.Error
+// @Failure     404 {object} response.Error
+// @Failure     500 {object} response.Error
+// @Security    BearerAuth
+// @Router      /important-days/{id}/reminders [get]
+func (r *V1) getImportantDayReminders(ctx *fiber.Ctx) error {
+	userID, ok := ctx.Locals("userID").(string)
+	if !ok {
+		return errorResponse(ctx, http.StatusUnauthorized, "unauthorized")
+	}
+
+	rules, err := r.id.GetReminderRules(ctx.UserContext(), userID, ctx.Params("id"))
+	if err != nil {
+		r.l.Error(err, "restapi - v1 - getImportantDayReminders")
+
+		if errors.Is(err, entity.ErrImportantDayNotFound) {
+			return errorResponse(ctx, http.StatusNotFound, "important day not found")
+		}
+
+		if errors.Is(err, entity.ErrImportantDayForbidden) {
+			return errorResponse(ctx, http.StatusForbidden, "forbidden")
+		}
+
+		return errorResponse(ctx, http.StatusInternalServerError, "internal server error")
+	}
+
+	return ctx.Status(http.StatusOK).JSON(response.ReminderRuleList{Rules: rules})
+}
+
 // @Summary     Delete important day
 // @Description Delete an important day by ID
 // @ID          delete-important-day

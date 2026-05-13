@@ -107,6 +107,39 @@ func TestHTTPImportantDayRemindersV1(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
 	}
+
+	rules := parseJSON[struct {
+		Rules []struct {
+			OffsetDays int      `json:"offset_days"`
+			Channels   []string `json:"channels"`
+		} `json:"rules"`
+	}](t, resp)
+	if len(rules.Rules) != 1 || rules.Rules[0].OffsetDays != 7 {
+		t.Fatalf("unexpected replaced reminders: %+v", rules)
+	}
+
+	ctx, cancel = context.WithTimeout(t.Context(), requestTimeout)
+	defer cancel()
+
+	resp, err = doAuthenticatedRequest(ctx, http.MethodGet, basePathV1+"/important-days/"+created.ID+"/reminders", http.NoBody, token)
+	if err != nil {
+		t.Fatalf("Get reminders: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+
+	rules = parseJSON[struct {
+		Rules []struct {
+			OffsetDays int      `json:"offset_days"`
+			Channels   []string `json:"channels"`
+		} `json:"rules"`
+	}](t, resp)
+	if len(rules.Rules) != 1 || rules.Rules[0].OffsetDays != 7 {
+		t.Fatalf("unexpected reminders response: %+v", rules)
+	}
 }
 
 func TestHTTPUserSettingsV1(t *testing.T) {

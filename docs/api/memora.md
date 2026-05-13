@@ -262,6 +262,18 @@ Request body is the same as create, except `reminder_rules` is not accepted here
 
 Success: `200`
 
+### Get Reminder Rules
+
+`GET /important-days/:id/reminders`
+
+Success: `200`
+
+```json
+{
+  "rules": []
+}
+```
+
 ### Replace Reminder Rules
 
 `PUT /important-days/:id/reminders`

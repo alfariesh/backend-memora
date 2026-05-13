@@ -50,6 +50,7 @@ type (
 		Upcoming(ctx context.Context, userID string, from time.Time, days, limit, offset int) ([]entity.ImportantDayUpcoming, int, error)
 		Update(ctx context.Context, userID, id string, params entity.ImportantDayParams) (entity.ImportantDay, error)
 		Delete(ctx context.Context, userID, id string) error
+		GetReminderRules(ctx context.Context, userID, id string) ([]entity.ReminderRule, error)
 		ReplaceReminderRules(ctx context.Context, userID, id string, rules []entity.ReminderRuleParams) ([]entity.ReminderRule, error)
 	}
 

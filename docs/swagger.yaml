@@ -1209,6 +1209,43 @@ paths:
       tags:
       - important-days
   /important-days/{id}/reminders:
+    get:
+      description: Get reminder rules for an important day
+      operationId: get-important-day-reminders
+      parameters:
+      - description: Important day ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/v1.ReminderRuleList'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/v1.Error'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/v1.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/v1.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.Error'
+      security:
+      - BearerAuth: []
+      summary: Get important day reminders
+      tags:
+      - important-days
     put:
       consumes:
       - application/json

@@ -406,6 +406,21 @@ func (mr *MockImportantDayMockRecorder) Get(ctx, userID, id any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockImportantDay)(nil).Get), ctx, userID, id)
 }
 
+// GetReminderRules mocks base method.
+func (m *MockImportantDay) GetReminderRules(ctx context.Context, userID, id string) ([]entity.ReminderRule, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetReminderRules", ctx, userID, id)
+	ret0, _ := ret[0].([]entity.ReminderRule)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetReminderRules indicates an expected call of GetReminderRules.
+func (mr *MockImportantDayMockRecorder) GetReminderRules(ctx, userID, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReminderRules", reflect.TypeOf((*MockImportantDay)(nil).GetReminderRules), ctx, userID, id)
+}
+
 // List mocks base method.
 func (m *MockImportantDay) List(ctx context.Context, userID string, dayType *entity.ImportantDayType, limit, offset int) ([]entity.ImportantDay, int, error) {
 	m.ctrl.T.Helper()

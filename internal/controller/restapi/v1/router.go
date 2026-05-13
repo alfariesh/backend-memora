@@ -69,6 +69,7 @@ func NewRoutes(
 		importantDayGroup.Post("/", r.createImportantDay)
 		importantDayGroup.Get("/", r.listImportantDays)
 		importantDayGroup.Get("/upcoming", r.upcomingImportantDays)
+		importantDayGroup.Get("/:id/reminders", r.getImportantDayReminders)
 		importantDayGroup.Get("/:id", r.getImportantDay)
 		importantDayGroup.Put("/:id", r.updateImportantDay)
 		importantDayGroup.Put("/:id/reminders", r.replaceImportantDayReminders)

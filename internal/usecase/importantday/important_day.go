@@ -231,6 +231,20 @@ func (uc *UseCase) Delete(ctx context.Context, userID, id string) error {
 	return nil
 }
 
+// GetReminderRules -.
+func (uc *UseCase) GetReminderRules(ctx context.Context, userID, id string) ([]entity.ReminderRule, error) {
+	if _, err := uc.dayRepo.GetByID(ctx, userID, id); err != nil {
+		return nil, fmt.Errorf("ImportantDayUseCase - GetReminderRules - uc.dayRepo.GetByID: %w", err)
+	}
+
+	rules, err := uc.ruleRepo.GetForImportantDay(ctx, userID, id)
+	if err != nil {
+		return nil, fmt.Errorf("ImportantDayUseCase - GetReminderRules - uc.ruleRepo.GetForImportantDay: %w", err)
+	}
+
+	return rules, nil
+}
+
 // ReplaceReminderRules -.
 func (uc *UseCase) ReplaceReminderRules(ctx context.Context, userID, id string, params []entity.ReminderRuleParams) ([]entity.ReminderRule, error) {
 	day, err := uc.dayRepo.GetByID(ctx, userID, id)
