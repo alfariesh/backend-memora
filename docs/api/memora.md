@@ -307,6 +307,38 @@ Invalid token response: `400`
 }
 ```
 
+### Send Test Push
+
+`POST /devices/:id/test-push`
+
+Optional body:
+
+```json
+{
+  "title": "Memora test",
+  "body": "Push notifications are working."
+}
+```
+
+Success: `200`
+
+```json
+{
+  "device_id": "uuid",
+  "ticket_id": "expo-ticket-id",
+  "sent_at": "2026-01-01T00:00:00Z"
+}
+```
+
+Use this after registering an Expo token from the mobile app to verify device delivery before relying on scheduled reminders.
+
+Common errors:
+
+- `404`: device not found or inactive
+- `410`: Expo says the device is not registered, and backend deactivates the token
+- `502`: Expo send failed
+- `503`: push sender is not configured
+
 ### Delete Device
 
 `DELETE /devices/:id`

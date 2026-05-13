@@ -49,6 +49,12 @@ type RegisterDevice struct {
 	Name     string `json:"name"     validate:"omitempty,max=255"     example:"Pixel 8"`
 } // @name v1.RegisterDevice
 
+// TestPush -.
+type TestPush struct {
+	Title string `json:"title" validate:"omitempty,max=100" example:"Memora test"`
+	Body  string `json:"body"  validate:"omitempty,max=255" example:"Push notifications are working."`
+} // @name v1.TestPush
+
 func (r CreateImportantDay) ToParams() entity.ImportantDayParams {
 	return entity.ImportantDayParams{
 		Title:         r.Title,

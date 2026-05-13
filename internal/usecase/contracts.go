@@ -63,6 +63,7 @@ type (
 	// DeviceToken -.
 	DeviceToken interface {
 		Register(ctx context.Context, userID, token, platform, name string) (entity.DeviceToken, error)
+		TestPush(ctx context.Context, userID, id, title, body string) (entity.PushTestResult, error)
 		Delete(ctx context.Context, userID, id string) error
 	}
 

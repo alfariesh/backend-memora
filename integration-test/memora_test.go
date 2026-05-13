@@ -242,6 +242,23 @@ func TestHTTPRegisterDeviceRejectsInvalidExpoTokenV1(t *testing.T) {
 	}
 }
 
+func TestHTTPTestPushDeviceNotFoundV1(t *testing.T) {
+	token := registerAndLogin(t)
+
+	ctx, cancel := context.WithTimeout(t.Context(), requestTimeout)
+	defer cancel()
+
+	resp, err := doAuthenticatedRequest(ctx, http.MethodPost, basePathV1+"/devices/missing-device/test-push", bytes.NewBufferString(`{}`), token)
+	if err != nil {
+		t.Fatalf("Test push missing device: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", resp.StatusCode)
+	}
+}
+
 func httpCreateImportantDay(t *testing.T, token string) importantDayResponse {
 	t.Helper()
 

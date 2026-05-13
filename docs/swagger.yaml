@@ -202,6 +202,18 @@ definitions:
         example: 550e8400-e29b-41d4-a716-446655440000
         type: string
     type: object
+  entity.PushTestResult:
+    properties:
+      device_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      sent_at:
+        example: "2026-01-01T00:00:00Z"
+        type: string
+      ticket_id:
+        example: 00000000-0000-0000-0000-000000000000
+        type: string
+    type: object
   entity.Recurrence:
     enum:
     - yearly
@@ -535,6 +547,17 @@ definitions:
         example: 42
         type: integer
     type: object
+  v1.TestPush:
+    properties:
+      body:
+        example: Push notifications are working.
+        maxLength: 255
+        type: string
+      title:
+        example: Memora test
+        maxLength: 100
+        type: string
+    type: object
   v1.TransitionTask:
     properties:
       status:
@@ -867,6 +890,59 @@ paths:
       security:
       - BearerAuth: []
       summary: Delete device
+      tags:
+      - devices
+  /devices/{id}/test-push:
+    post:
+      consumes:
+      - application/json
+      description: Send a test Expo push notification to a registered device
+      operationId: test-push
+      parameters:
+      - description: Device token ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Test push copy
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/v1.TestPush'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.PushTestResult'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/v1.Error'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/v1.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/v1.Error'
+        "410":
+          description: Gone
+          schema:
+            $ref: '#/definitions/v1.Error'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/v1.Error'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/v1.Error'
+      security:
+      - BearerAuth: []
+      summary: Send test push
       tags:
       - devices
   /important-days:

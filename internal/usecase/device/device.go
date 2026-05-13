@@ -2,6 +2,7 @@ package device
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -12,12 +13,29 @@ import (
 
 // UseCase -.
 type UseCase struct {
-	repo repo.DeviceTokenRepo
+	repo       repo.DeviceTokenRepo
+	pushSender repo.PushSender
+}
+
+// Option -.
+type Option func(*UseCase)
+
+// PushSender -.
+func PushSender(sender repo.PushSender) Option {
+	return func(uc *UseCase) {
+		uc.pushSender = sender
+	}
 }
 
 // New -.
-func New(r repo.DeviceTokenRepo) *UseCase {
-	return &UseCase{repo: r}
+func New(r repo.DeviceTokenRepo, opts ...Option) *UseCase {
+	uc := &UseCase{repo: r}
+
+	for _, opt := range opts {
+		opt(uc)
+	}
+
+	return uc
 }
 
 // Register -.
@@ -52,4 +70,63 @@ func (uc *UseCase) Delete(ctx context.Context, userID, id string) error {
 	}
 
 	return nil
+}
+
+// TestPush -.
+func (uc *UseCase) TestPush(ctx context.Context, userID, id, title, body string) (entity.PushTestResult, error) {
+	if uc.pushSender == nil {
+		return entity.PushTestResult{}, entity.ErrPushSenderNotConfigured
+	}
+
+	deviceToken, err := uc.getActiveDevice(ctx, userID, id)
+	if err != nil {
+		return entity.PushTestResult{}, err
+	}
+
+	if title == "" {
+		title = "Memora test"
+	}
+
+	if body == "" {
+		body = "Push notifications are working."
+	}
+
+	now := time.Now().UTC()
+	ticketID, err := uc.pushSender.Send(ctx, deviceToken.Token, title, body, map[string]string{
+		"type":      "test_push",
+		"device_id": deviceToken.ID,
+		"sent_at":   now.Format(time.RFC3339),
+	})
+	if err != nil {
+		if errors.Is(err, entity.ErrPushDeviceNotRegistered) {
+			if deactivateErr := uc.repo.Deactivate(ctx, userID, deviceToken.ID, now); deactivateErr != nil {
+				return entity.PushTestResult{}, fmt.Errorf("DeviceUseCase - TestPush - uc.repo.Deactivate: %w", deactivateErr)
+			}
+
+			return entity.PushTestResult{}, entity.ErrPushDeviceNotRegistered
+		}
+
+		return entity.PushTestResult{}, fmt.Errorf("DeviceUseCase - TestPush - uc.pushSender.Send: %w: %v", entity.ErrPushSendFailed, err)
+	}
+
+	return entity.PushTestResult{
+		DeviceID: deviceToken.ID,
+		TicketID: ticketID,
+		SentAt:   now,
+	}, nil
+}
+
+func (uc *UseCase) getActiveDevice(ctx context.Context, userID, id string) (entity.DeviceToken, error) {
+	tokens, err := uc.repo.ListActiveByUser(ctx, userID)
+	if err != nil {
+		return entity.DeviceToken{}, fmt.Errorf("DeviceUseCase - getActiveDevice - uc.repo.ListActiveByUser: %w", err)
+	}
+
+	for _, token := range tokens {
+		if token.ID == id {
+			return token, nil
+		}
+	}
+
+	return entity.DeviceToken{}, entity.ErrDeviceTokenNotFound
 }

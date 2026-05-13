@@ -206,6 +206,13 @@ type DeviceToken struct {
 	UpdatedAt time.Time `json:"updated_at" example:"2026-01-01T00:00:00Z"`
 } // @name entity.DeviceToken
 
+// PushTestResult -.
+type PushTestResult struct {
+	DeviceID string    `json:"device_id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	TicketID string    `json:"ticket_id" example:"00000000-0000-0000-0000-000000000000"`
+	SentAt   time.Time `json:"sent_at"   example:"2026-01-01T00:00:00Z"`
+} // @name entity.PushTestResult
+
 // IsExpoPushToken reports whether token looks like an Expo push token.
 func IsExpoPushToken(token string) bool {
 	return hasPushTokenEnvelope(token, "ExpoPushToken[") ||

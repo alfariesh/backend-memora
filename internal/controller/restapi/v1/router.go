@@ -80,6 +80,7 @@ func NewRoutes(
 	deviceGroup := protected.Group("/devices")
 	{
 		deviceGroup.Post("/", r.registerDevice)
+		deviceGroup.Post("/:id/test-push", r.testPush)
 		deviceGroup.Delete("/:id", r.deleteDevice)
 	}
 }

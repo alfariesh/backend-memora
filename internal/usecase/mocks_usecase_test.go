@@ -590,6 +590,21 @@ func (mr *MockDeviceTokenMockRecorder) Register(ctx, userID, token, platform, na
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Register", reflect.TypeOf((*MockDeviceToken)(nil).Register), ctx, userID, token, platform, name)
 }
 
+// TestPush mocks base method.
+func (m *MockDeviceToken) TestPush(ctx context.Context, userID, id, title, body string) (entity.PushTestResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TestPush", ctx, userID, id, title, body)
+	ret0, _ := ret[0].(entity.PushTestResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// TestPush indicates an expected call of TestPush.
+func (mr *MockDeviceTokenMockRecorder) TestPush(ctx, userID, id, title, body any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TestPush", reflect.TypeOf((*MockDeviceToken)(nil).TestPush), ctx, userID, id, title, body)
+}
+
 // MockReminderWorker is a mock of ReminderWorker interface.
 type MockReminderWorker struct {
 	ctrl     *gomock.Controller

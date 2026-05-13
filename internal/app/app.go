@@ -72,7 +72,7 @@ func initUseCases(cfg *config.Config, pg *postgres.Postgres, jwtManager *jwt.Man
 		translation:  translation.New(translationRepo, webapi.New()),
 		importantDay: importantday.New(importantDayRepo, reminderRuleRepo, reminderJobRepo, userSettingsRepo),
 		notification: notification.New(notificationRepo),
-		device:       device.New(deviceTokenRepo),
+		device:       device.New(deviceTokenRepo, device.PushSender(pushSender)),
 		reminder: reminder.New(
 			reminderJobRepo,
 			importantDayRepo,
