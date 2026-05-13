@@ -73,6 +73,7 @@ func NewRoutes(
 	notificationGroup := protected.Group("/notifications")
 	{
 		notificationGroup.Get("/", r.listNotifications)
+		notificationGroup.Get("/unread-count", r.countUnreadNotifications)
 		notificationGroup.Patch("/:id/read", r.markNotificationRead)
 		notificationGroup.Patch("/read-all", r.markAllNotificationsRead)
 	}

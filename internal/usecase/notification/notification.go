@@ -41,6 +41,16 @@ func (uc *UseCase) List(ctx context.Context, userID string, unreadOnly bool, lim
 	return notifications, total, nil
 }
 
+// CountUnread -.
+func (uc *UseCase) CountUnread(ctx context.Context, userID string) (int, error) {
+	count, err := uc.repo.CountUnread(ctx, userID)
+	if err != nil {
+		return 0, fmt.Errorf("NotificationUseCase - CountUnread - uc.repo.CountUnread: %w", err)
+	}
+
+	return count, nil
+}
+
 // MarkRead -.
 func (uc *UseCase) MarkRead(ctx context.Context, userID, id string) (entity.Notification, error) {
 	readAt := time.Now().UTC()

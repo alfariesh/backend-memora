@@ -492,6 +492,21 @@ func (m *MockNotification) EXPECT() *MockNotificationMockRecorder {
 	return m.recorder
 }
 
+// CountUnread mocks base method.
+func (m *MockNotification) CountUnread(ctx context.Context, userID string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountUnread", ctx, userID)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountUnread indicates an expected call of CountUnread.
+func (mr *MockNotificationMockRecorder) CountUnread(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountUnread", reflect.TypeOf((*MockNotification)(nil).CountUnread), ctx, userID)
+}
+
 // List mocks base method.
 func (m *MockNotification) List(ctx context.Context, userID string, unreadOnly bool, limit, offset int) ([]entity.Notification, int, error) {
 	m.ctrl.T.Helper()

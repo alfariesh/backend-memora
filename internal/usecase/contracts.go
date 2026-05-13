@@ -56,6 +56,7 @@ type (
 	// Notification -.
 	Notification interface {
 		List(ctx context.Context, userID string, unreadOnly bool, limit, offset int) ([]entity.Notification, int, error)
+		CountUnread(ctx context.Context, userID string) (int, error)
 		MarkRead(ctx context.Context, userID, id string) (entity.Notification, error)
 		MarkAllRead(ctx context.Context, userID string) error
 	}

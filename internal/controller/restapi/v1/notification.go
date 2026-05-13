@@ -42,6 +42,32 @@ func (r *V1) listNotifications(ctx *fiber.Ctx) error {
 	})
 }
 
+// @Summary     Count unread notifications
+// @Description Get unread in-app notification count for the current user
+// @ID          count-unread-notifications
+// @Tags        notifications
+// @Produce     json
+// @Success     200 {object} response.UnreadNotificationCount
+// @Failure     401 {object} response.Error
+// @Failure     500 {object} response.Error
+// @Security    BearerAuth
+// @Router      /notifications/unread-count [get]
+func (r *V1) countUnreadNotifications(ctx *fiber.Ctx) error {
+	userID, ok := ctx.Locals("userID").(string)
+	if !ok {
+		return errorResponse(ctx, http.StatusUnauthorized, "unauthorized")
+	}
+
+	count, err := r.n.CountUnread(ctx.UserContext(), userID)
+	if err != nil {
+		r.l.Error(err, "restapi - v1 - countUnreadNotifications")
+
+		return errorResponse(ctx, http.StatusInternalServerError, "internal server error")
+	}
+
+	return ctx.Status(http.StatusOK).JSON(response.UnreadNotificationCount{UnreadCount: count})
+}
+
 // @Summary     Mark notification read
 // @Description Mark one notification as read
 // @ID          mark-notification-read

@@ -86,6 +86,7 @@ type (
 	NotificationRepo interface {
 		Store(ctx context.Context, notification *entity.Notification) error
 		List(ctx context.Context, userID string, filter NotificationFilter) ([]entity.Notification, int, error)
+		CountUnread(ctx context.Context, userID string) (int, error)
 		GetByID(ctx context.Context, userID, id string) (entity.Notification, error)
 		MarkRead(ctx context.Context, userID, id string, readAt time.Time) error
 		MarkAllRead(ctx context.Context, userID string, readAt time.Time) error

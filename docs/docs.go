@@ -936,6 +936,44 @@ const docTemplate = `{
                 ]
             }
         },
+        "/notifications/unread-count": {
+            "get": {
+                "description": "Get unread in-app notification count for the current user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "notifications"
+                ],
+                "summary": "Count unread notifications",
+                "operationId": "count-unread-notifications",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/v1.UnreadNotificationCount"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
         "/notifications/{id}/read": {
             "patch": {
                 "description": "Mark one notification as read",
@@ -2420,6 +2458,15 @@ const docTemplate = `{
                 "source": {
                     "type": "string",
                     "example": "auto"
+                }
+            }
+        },
+        "v1.UnreadNotificationCount": {
+            "type": "object",
+            "properties": {
+                "unread_count": {
+                    "type": "integer",
+                    "example": 3
                 }
             }
         },

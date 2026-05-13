@@ -24,3 +24,8 @@ type NotificationList struct {
 	Notifications []entity.Notification `json:"notifications"`
 	Total         int                   `json:"total" example:"42"`
 } // @name v1.NotificationList
+
+// UnreadNotificationCount -.
+type UnreadNotificationCount struct {
+	UnreadCount int `json:"unread_count" example:"3"`
+} // @name v1.UnreadNotificationCount

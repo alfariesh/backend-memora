@@ -362,6 +362,18 @@ Success: `200`
 }
 ```
 
+### Unread Notification Count
+
+`GET /notifications/unread-count`
+
+Success: `200`
+
+```json
+{
+  "unread_count": 3
+}
+```
+
 ### Mark Notification Read
 
 `PATCH /notifications/:id/read`

@@ -665,6 +665,21 @@ func (m *MockNotificationRepo) EXPECT() *MockNotificationRepoMockRecorder {
 	return m.recorder
 }
 
+// CountUnread mocks base method.
+func (m *MockNotificationRepo) CountUnread(ctx context.Context, userID string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountUnread", ctx, userID)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountUnread indicates an expected call of CountUnread.
+func (mr *MockNotificationRepoMockRecorder) CountUnread(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountUnread", reflect.TypeOf((*MockNotificationRepo)(nil).CountUnread), ctx, userID)
+}
+
 // GetByID mocks base method.
 func (m *MockNotificationRepo) GetByID(ctx context.Context, userID, id string) (entity.Notification, error) {
 	m.ctrl.T.Helper()

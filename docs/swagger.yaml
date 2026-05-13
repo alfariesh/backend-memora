@@ -587,6 +587,12 @@ definitions:
     - original
     - source
     type: object
+  v1.UnreadNotificationCount:
+    properties:
+      unread_count:
+        example: 3
+        type: integer
+    type: object
   v1.UpcomingImportantDayList:
     properties:
       important_days:
@@ -1325,6 +1331,30 @@ paths:
       security:
       - BearerAuth: []
       summary: Mark all notifications read
+      tags:
+      - notifications
+  /notifications/unread-count:
+    get:
+      description: Get unread in-app notification count for the current user
+      operationId: count-unread-notifications
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/v1.UnreadNotificationCount'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/v1.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.Error'
+      security:
+      - BearerAuth: []
+      summary: Count unread notifications
       tags:
       - notifications
   /tasks:

@@ -115,6 +115,28 @@ func (r *NotificationRepo) List(ctx context.Context, userID string, filter repo.
 	return notifications, total, nil
 }
 
+// CountUnread -.
+func (r *NotificationRepo) CountUnread(ctx context.Context, userID string) (int, error) {
+	sql, args, err := r.Builder.
+		Select("COUNT(*)").
+		From("notifications").
+		Where(sq.Eq{"user_id": userID}).
+		Where("read_at IS NULL").
+		ToSql()
+	if err != nil {
+		return 0, fmt.Errorf("NotificationRepo - CountUnread - r.Builder: %w", err)
+	}
+
+	var count int
+
+	err = r.Pool.QueryRow(ctx, sql, args...).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("NotificationRepo - CountUnread - r.Pool.QueryRow: %w", err)
+	}
+
+	return count, nil
+}
+
 // GetByID -.
 func (r *NotificationRepo) GetByID(ctx context.Context, userID, id string) (entity.Notification, error) {
 	sql, args, err := r.Builder.

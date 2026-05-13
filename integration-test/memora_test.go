@@ -214,6 +214,26 @@ func TestHTTPDevicesAndNotificationsV1(t *testing.T) {
 	ctx, cancel = context.WithTimeout(t.Context(), requestTimeout)
 	defer cancel()
 
+	resp, err = doAuthenticatedRequest(ctx, http.MethodGet, basePathV1+"/notifications/unread-count", http.NoBody, token)
+	if err != nil {
+		t.Fatalf("Count unread notifications: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+
+	unreadCount := parseJSON[struct {
+		UnreadCount int `json:"unread_count"`
+	}](t, resp)
+	if unreadCount.UnreadCount != 0 {
+		t.Fatalf("expected unread count 0, got %d", unreadCount.UnreadCount)
+	}
+
+	ctx, cancel = context.WithTimeout(t.Context(), requestTimeout)
+	defer cancel()
+
 	resp, err = doAuthenticatedRequest(ctx, http.MethodDelete, basePathV1+"/devices/"+device.ID, http.NoBody, token)
 	if err != nil {
 		t.Fatalf("Delete device: %v", err)
