@@ -16,6 +16,7 @@ import (
 	natsClient "github.com/evrone/go-clean-template/pkg/nats/nats_rpc/client"
 	rmqClient "github.com/evrone/go-clean-template/pkg/rabbitmq/rmq_rpc/client"
 	"github.com/goccy/go-json"
+	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
@@ -140,11 +141,19 @@ func sanitizeTestName(t *testing.T) string {
 	return name
 }
 
+func uniqueTestName(t *testing.T) string {
+	t.Helper()
+
+	suffix := strings.ReplaceAll(uuid.NewString(), "-", "")[:8]
+
+	return sanitizeTestName(t) + "_" + suffix
+}
+
 // registerAndLogin creates a unique user via HTTP and returns the JWT token.
 func registerAndLogin(t *testing.T) string {
 	t.Helper()
 
-	name := sanitizeTestName(t)
+	name := uniqueTestName(t)
 	email := name + "@test.com"
 	password := testPassword
 
@@ -162,7 +171,7 @@ func registerAndLogin(t *testing.T) string {
 func registerAndLoginGRPC(t *testing.T) string {
 	t.Helper()
 
-	name := sanitizeTestName(t)
+	name := uniqueTestName(t)
 	email := name + "@test.com"
 	password := testPassword
 
@@ -203,7 +212,7 @@ func registerAndLoginGRPC(t *testing.T) string {
 func registerAndLoginRMQ(t *testing.T) string {
 	t.Helper()
 
-	name := sanitizeTestName(t)
+	name := uniqueTestName(t)
 	email := name + "@test.com"
 	password := testPassword
 
@@ -252,7 +261,7 @@ func registerAndLoginRMQ(t *testing.T) string {
 func registerAndLoginNATS(t *testing.T) string {
 	t.Helper()
 
-	name := sanitizeTestName(t)
+	name := uniqueTestName(t)
 	email := name + "@test.com"
 	password := testPassword
 

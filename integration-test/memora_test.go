@@ -5,6 +5,11 @@ import (
 	"context"
 	"net/http"
 	"testing"
+	"time"
+
+	"github.com/evrone/go-clean-template/internal/entity"
+	"github.com/evrone/go-clean-template/internal/repo/persistent"
+	"github.com/google/uuid"
 )
 
 type importantDayResponse struct {
@@ -19,6 +24,12 @@ type importantDayResponse struct {
 
 type deviceResponse struct {
 	ID string `json:"id"`
+}
+
+type notificationResponse struct {
+	ID     string     `json:"id"`
+	Title  string     `json:"title"`
+	ReadAt *time.Time `json:"read_at"`
 }
 
 func TestHTTPImportantDaysV1(t *testing.T) {
@@ -320,6 +331,105 @@ func TestHTTPDevicesAndNotificationsV1(t *testing.T) {
 	}
 }
 
+func TestHTTPNotificationReadFlowV1(t *testing.T) {
+	token := registerAndLogin(t)
+	user := httpGetProfile(t, token)
+	pg := openIntegrationPostgres(t)
+	notificationRepo := persistent.NewNotificationRepo(pg)
+	now := time.Date(2026, 5, 13, 9, 0, 0, 0, time.UTC)
+
+	first := entity.Notification{
+		ID:        uuid.NewString(),
+		UserID:    user.ID,
+		Type:      "important_day_reminder",
+		Title:     "First reminder",
+		Body:      "First reminder body.",
+		Data:      `{"source":"integration"}`,
+		CreatedAt: now,
+	}
+	second := entity.Notification{
+		ID:        uuid.NewString(),
+		UserID:    user.ID,
+		Type:      "important_day_reminder",
+		Title:     "Second reminder",
+		Body:      "Second reminder body.",
+		Data:      `{"source":"integration"}`,
+		CreatedAt: now.Add(time.Minute),
+	}
+
+	ctx, cancel := context.WithTimeout(t.Context(), requestTimeout)
+	defer cancel()
+
+	if err := notificationRepo.Store(ctx, &first); err != nil {
+		t.Fatalf("store first notification: %v", err)
+	}
+	if err := notificationRepo.Store(ctx, &second); err != nil {
+		t.Fatalf("store second notification: %v", err)
+	}
+
+	assertUnreadNotificationCount(t, token, 2)
+
+	resp := httpListNotifications(t, token, true)
+	unread := parseJSON[struct {
+		Notifications []notificationResponse `json:"notifications"`
+		Total         int                    `json:"total"`
+	}](t, resp)
+	resp.Body.Close()
+
+	if unread.Total != 2 || len(unread.Notifications) != 2 {
+		t.Fatalf("expected 2 unread notifications, got %+v", unread)
+	}
+	if !hasNotificationID(unread.Notifications, first.ID) || !hasNotificationID(unread.Notifications, second.ID) {
+		t.Fatalf("missing seeded notifications in unread list: %+v", unread.Notifications)
+	}
+
+	ctx, cancel = context.WithTimeout(t.Context(), requestTimeout)
+	defer cancel()
+
+	resp, err := doAuthenticatedRequest(ctx, http.MethodPatch, basePathV1+"/notifications/"+first.ID+"/read", http.NoBody, token)
+	if err != nil {
+		t.Fatalf("Mark notification read: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+
+	marked := parseJSON[notificationResponse](t, resp)
+	if marked.ID != first.ID || marked.ReadAt == nil {
+		t.Fatalf("unexpected marked notification: %+v", marked)
+	}
+
+	assertUnreadNotificationCount(t, token, 1)
+
+	ctx, cancel = context.WithTimeout(t.Context(), requestTimeout)
+	defer cancel()
+
+	resp, err = doAuthenticatedRequest(ctx, http.MethodPatch, basePathV1+"/notifications/read-all", http.NoBody, token)
+	if err != nil {
+		t.Fatalf("Mark all notifications read: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		t.Fatalf("expected 204, got %d", resp.StatusCode)
+	}
+
+	assertUnreadNotificationCount(t, token, 0)
+
+	resp = httpListNotifications(t, token, true)
+	unread = parseJSON[struct {
+		Notifications []notificationResponse `json:"notifications"`
+		Total         int                    `json:"total"`
+	}](t, resp)
+	resp.Body.Close()
+
+	if unread.Total != 0 || len(unread.Notifications) != 0 {
+		t.Fatalf("expected no unread notifications, got %+v", unread)
+	}
+}
+
 func TestHTTPMobileBootstrapV1(t *testing.T) {
 	token := registerAndLogin(t)
 	created := httpCreateImportantDay(t, token)
@@ -435,4 +545,85 @@ func httpCreateImportantDay(t *testing.T, token string) importantDayResponse {
 	}
 
 	return parseJSON[importantDayResponse](t, resp)
+}
+
+func httpGetProfile(t *testing.T, token string) struct {
+	ID string `json:"id"`
+} {
+	t.Helper()
+
+	ctx, cancel := context.WithTimeout(t.Context(), requestTimeout)
+	defer cancel()
+
+	resp, err := doAuthenticatedRequest(ctx, http.MethodGet, basePathV1+"/user/profile", http.NoBody, token)
+	if err != nil {
+		t.Fatalf("Get profile: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+
+	return parseJSON[struct {
+		ID string `json:"id"`
+	}](t, resp)
+}
+
+func httpListNotifications(t *testing.T, token string, unreadOnly bool) *http.Response {
+	t.Helper()
+
+	ctx, cancel := context.WithTimeout(t.Context(), requestTimeout)
+	defer cancel()
+
+	url := basePathV1 + "/notifications/?limit=10&offset=0"
+	if unreadOnly {
+		url += "&unread_only=true"
+	}
+
+	resp, err := doAuthenticatedRequest(ctx, http.MethodGet, url, http.NoBody, token)
+	if err != nil {
+		t.Fatalf("List notifications: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		defer resp.Body.Close()
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+
+	return resp
+}
+
+func assertUnreadNotificationCount(t *testing.T, token string, expected int) {
+	t.Helper()
+
+	ctx, cancel := context.WithTimeout(t.Context(), requestTimeout)
+	defer cancel()
+
+	resp, err := doAuthenticatedRequest(ctx, http.MethodGet, basePathV1+"/notifications/unread-count", http.NoBody, token)
+	if err != nil {
+		t.Fatalf("Count unread notifications: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+
+	unreadCount := parseJSON[struct {
+		UnreadCount int `json:"unread_count"`
+	}](t, resp)
+	if unreadCount.UnreadCount != expected {
+		t.Fatalf("expected unread count %d, got %d", expected, unreadCount.UnreadCount)
+	}
+}
+
+func hasNotificationID(notifications []notificationResponse, id string) bool {
+	for _, notification := range notifications {
+		if notification.ID == id {
+			return true
+		}
+	}
+
+	return false
 }
