@@ -468,6 +468,28 @@ definitions:
     - email
     - password
     type: object
+  v1.MobileBootstrap:
+    properties:
+      devices:
+        items:
+          $ref: '#/definitions/entity.DeviceToken'
+        type: array
+      devices_total:
+        example: 1
+        type: integer
+      settings:
+        $ref: '#/definitions/entity.UserSettings'
+      unread_notification_count:
+        example: 2
+        type: integer
+      upcoming_important_days:
+        items:
+          $ref: '#/definitions/entity.ImportantDayUpcoming'
+        type: array
+      upcoming_total:
+        example: 3
+        type: integer
+    type: object
   v1.NotificationList:
     properties:
       notifications:
@@ -1272,6 +1294,46 @@ paths:
       summary: List upcoming important days
       tags:
       - important-days
+  /mobile/bootstrap:
+    get:
+      description: Get initial data needed by the mobile app after login
+      operationId: mobile-bootstrap
+      parameters:
+      - default: 30
+        description: Upcoming lookahead window in days
+        in: query
+        name: upcoming_days
+        type: integer
+      - default: 5
+        description: Upcoming important days limit
+        in: query
+        name: upcoming_limit
+        type: integer
+      - default: 0
+        description: Upcoming important days offset
+        in: query
+        name: upcoming_offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/v1.MobileBootstrap'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/v1.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.Error'
+      security:
+      - BearerAuth: []
+      summary: Get mobile bootstrap
+      tags:
+      - mobile
   /notifications:
     get:
       description: List in-app notifications for the current user

@@ -59,6 +59,11 @@ func NewRoutes(
 		translationGroup.Post("/do-translate", r.doTranslate)
 	}
 
+	mobileGroup := protected.Group("/mobile")
+	{
+		mobileGroup.Get("/bootstrap", r.mobileBootstrap)
+	}
+
 	importantDayGroup := protected.Group("/important-days")
 	{
 		importantDayGroup.Post("/", r.createImportantDay)

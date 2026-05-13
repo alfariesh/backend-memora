@@ -139,6 +139,29 @@ Success: `200`
 
 `notification_channels` accepts `email`, `in_app`, and `push`. Send an empty array to disable all reminder notification channels.
 
+## Mobile Bootstrap
+
+Use this after login to hydrate the mobile app with the small set of data needed for the home screen and notification badge.
+
+`GET /mobile/bootstrap?upcoming_days=30&upcoming_limit=5&upcoming_offset=0`
+
+Success: `200`
+
+```json
+{
+  "settings": {
+    "timezone": "Asia/Jakarta",
+    "reminder_time": "09:00",
+    "notification_channels": ["email", "in_app", "push"]
+  },
+  "upcoming_important_days": [],
+  "upcoming_total": 0,
+  "unread_notification_count": 0,
+  "devices": [],
+  "devices_total": 0
+}
+```
+
 ## Important Days
 
 Supported `type` values:

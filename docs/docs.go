@@ -879,6 +879,67 @@ const docTemplate = `{
                 ]
             }
         },
+        "/mobile/bootstrap": {
+            "get": {
+                "description": "Get initial data needed by the mobile app after login",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "mobile"
+                ],
+                "summary": "Get mobile bootstrap",
+                "operationId": "mobile-bootstrap",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 30,
+                        "description": "Upcoming lookahead window in days",
+                        "name": "upcoming_days",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 5,
+                        "description": "Upcoming important days limit",
+                        "name": "upcoming_limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Upcoming important days offset",
+                        "name": "upcoming_offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/v1.MobileBootstrap"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
         "/notifications": {
             "get": {
                 "description": "List in-app notifications for the current user",
@@ -2323,6 +2384,38 @@ const docTemplate = `{
                 "password": {
                     "type": "string",
                     "example": "secret123"
+                }
+            }
+        },
+        "v1.MobileBootstrap": {
+            "type": "object",
+            "properties": {
+                "devices": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entity.DeviceToken"
+                    }
+                },
+                "devices_total": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "settings": {
+                    "$ref": "#/definitions/entity.UserSettings"
+                },
+                "unread_notification_count": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "upcoming_important_days": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entity.ImportantDayUpcoming"
+                    }
+                },
+                "upcoming_total": {
+                    "type": "integer",
+                    "example": 3
                 }
             }
         },

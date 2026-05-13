@@ -35,3 +35,13 @@ type NotificationList struct {
 type UnreadNotificationCount struct {
 	UnreadCount int `json:"unread_count" example:"3"`
 } // @name v1.UnreadNotificationCount
+
+// MobileBootstrap -.
+type MobileBootstrap struct {
+	Settings                entity.UserSettings           `json:"settings"`
+	UpcomingImportantDays   []entity.ImportantDayUpcoming `json:"upcoming_important_days"`
+	UpcomingTotal           int                           `json:"upcoming_total"             example:"3"`
+	UnreadNotificationCount int                           `json:"unread_notification_count"  example:"2"`
+	Devices                 []entity.DeviceToken          `json:"devices"`
+	DevicesTotal            int                           `json:"devices_total"              example:"1"`
+} // @name v1.MobileBootstrap

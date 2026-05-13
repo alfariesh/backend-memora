@@ -17,6 +17,10 @@ type importantDayResponse struct {
 	ReminderTime string `json:"reminder_time"`
 }
 
+type deviceResponse struct {
+	ID string `json:"id"`
+}
+
 func TestHTTPImportantDaysV1(t *testing.T) {
 	token := registerAndLogin(t)
 
@@ -189,10 +193,6 @@ func TestHTTPDevicesAndNotificationsV1(t *testing.T) {
 		t.Fatalf("expected 201, got %d", resp.StatusCode)
 	}
 
-	type deviceResponse struct {
-		ID string `json:"id"`
-	}
-
 	device := parseJSON[deviceResponse](t, resp)
 	if device.ID == "" {
 		t.Fatal("expected non-empty device id")
@@ -284,6 +284,70 @@ func TestHTTPDevicesAndNotificationsV1(t *testing.T) {
 	}](t, resp)
 	if devices.Total != 0 || len(devices.Devices) != 0 {
 		t.Fatalf("expected no active devices, got %+v", devices)
+	}
+}
+
+func TestHTTPMobileBootstrapV1(t *testing.T) {
+	token := registerAndLogin(t)
+	created := httpCreateImportantDay(t, token)
+
+	ctx, cancel := context.WithTimeout(t.Context(), requestTimeout)
+	defer cancel()
+
+	resp, err := doAuthenticatedRequest(ctx, http.MethodPost, basePathV1+"/devices/", bytes.NewBufferString(`{"token":"ExpoPushToken[bootstrap]","platform":"ios","name":"iPhone"}`), token)
+	if err != nil {
+		t.Fatalf("Register bootstrap device: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		t.Fatalf("expected 201, got %d", resp.StatusCode)
+	}
+
+	device := parseJSON[deviceResponse](t, resp)
+	if device.ID == "" {
+		t.Fatal("expected non-empty device id")
+	}
+
+	ctx, cancel = context.WithTimeout(t.Context(), requestTimeout)
+	defer cancel()
+
+	resp, err = doAuthenticatedRequest(ctx, http.MethodGet, basePathV1+"/mobile/bootstrap?upcoming_days=365&upcoming_limit=5", http.NoBody, token)
+	if err != nil {
+		t.Fatalf("Mobile bootstrap: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+
+	bootstrap := parseJSON[struct {
+		Settings struct {
+			Timezone     string `json:"timezone"`
+			ReminderTime string `json:"reminder_time"`
+		} `json:"settings"`
+		UpcomingImportantDays   []importantDayResponse `json:"upcoming_important_days"`
+		UpcomingTotal           int                    `json:"upcoming_total"`
+		UnreadNotificationCount int                    `json:"unread_notification_count"`
+		Devices                 []deviceResponse       `json:"devices"`
+		DevicesTotal            int                    `json:"devices_total"`
+	}](t, resp)
+
+	if bootstrap.Settings.Timezone != "Asia/Jakarta" || bootstrap.Settings.ReminderTime != "09:00" {
+		t.Fatalf("unexpected settings: %+v", bootstrap.Settings)
+	}
+
+	if bootstrap.UpcomingTotal != 1 || len(bootstrap.UpcomingImportantDays) != 1 || bootstrap.UpcomingImportantDays[0].ID != created.ID {
+		t.Fatalf("unexpected upcoming important days: %+v", bootstrap)
+	}
+
+	if bootstrap.UnreadNotificationCount != 0 {
+		t.Fatalf("expected unread count 0, got %d", bootstrap.UnreadNotificationCount)
+	}
+
+	if bootstrap.DevicesTotal != 1 || len(bootstrap.Devices) != 1 || bootstrap.Devices[0].ID != device.ID {
+		t.Fatalf("unexpected devices: %+v", bootstrap.Devices)
 	}
 }
 
