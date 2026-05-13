@@ -219,6 +219,42 @@ const docTemplate = `{
             }
         },
         "/devices": {
+            "get": {
+                "description": "List active Expo push tokens for the current user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "devices"
+                ],
+                "summary": "List devices",
+                "operationId": "list-devices",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/v1.DeviceTokenList"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            },
             "post": {
                 "description": "Register or reactivate an Expo push token for the current user",
                 "consumes": [
@@ -2231,6 +2267,21 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 255,
                     "example": "My task"
+                }
+            }
+        },
+        "v1.DeviceTokenList": {
+            "type": "object",
+            "properties": {
+                "devices": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entity.DeviceToken"
+                    }
+                },
+                "total": {
+                    "type": "integer",
+                    "example": 2
                 }
             }
         },

@@ -19,6 +19,12 @@ type ReminderRuleList struct {
 	Rules []entity.ReminderRule `json:"rules"`
 } // @name v1.ReminderRuleList
 
+// DeviceTokenList -.
+type DeviceTokenList struct {
+	Devices []entity.DeviceToken `json:"devices"`
+	Total   int                  `json:"total" example:"2"`
+} // @name v1.DeviceTokenList
+
 // NotificationList -.
 type NotificationList struct {
 	Notifications []entity.Notification `json:"notifications"`

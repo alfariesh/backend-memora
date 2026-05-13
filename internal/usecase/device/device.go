@@ -38,6 +38,16 @@ func New(r repo.DeviceTokenRepo, opts ...Option) *UseCase {
 	return uc
 }
 
+// List -.
+func (uc *UseCase) List(ctx context.Context, userID string) ([]entity.DeviceToken, error) {
+	tokens, err := uc.repo.ListActiveByUser(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("DeviceUseCase - List - uc.repo.ListActiveByUser: %w", err)
+	}
+
+	return tokens, nil
+}
+
 // Register -.
 func (uc *UseCase) Register(ctx context.Context, userID, token, platform, name string) (entity.DeviceToken, error) {
 	if !entity.IsExpoPushToken(token) {

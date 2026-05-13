@@ -24,6 +24,36 @@ func newDeviceUseCase(t *testing.T) (*device.UseCase, *MockDeviceTokenRepo, *Moc
 	return useCase, repo, pushSender
 }
 
+func TestDeviceList(t *testing.T) {
+	t.Parallel()
+
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+
+		expected := []entity.DeviceToken{{ID: "device-id-123", UserID: "user-id-123"}}
+
+		uc, repo, _ := newDeviceUseCase(t)
+		repo.EXPECT().ListActiveByUser(context.Background(), "user-id-123").Return(expected, nil)
+
+		tokens, err := uc.List(context.Background(), "user-id-123")
+
+		require.NoError(t, err)
+		assert.Equal(t, expected, tokens)
+	})
+
+	t.Run("repo error", func(t *testing.T) {
+		t.Parallel()
+
+		uc, repo, _ := newDeviceUseCase(t)
+		repo.EXPECT().ListActiveByUser(context.Background(), "user-id-123").Return(nil, errInternalServErr)
+
+		tokens, err := uc.List(context.Background(), "user-id-123")
+
+		require.ErrorIs(t, err, errInternalServErr)
+		assert.Nil(t, tokens)
+	})
+}
+
 func TestDeviceTestPush(t *testing.T) {
 	t.Parallel()
 

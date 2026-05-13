@@ -283,6 +283,21 @@ Accepted token formats:
 
 Backend sends push notifications through Expo Push Service. Firebase/APNs credentials are not needed by the backend. They are still needed in the Expo/EAS mobile project so devices can receive push notifications.
 
+### List Devices
+
+`GET /devices/`
+
+Success: `200`
+
+```json
+{
+  "devices": [],
+  "total": 0
+}
+```
+
+Only active device tokens are returned. Use this when the app needs to confirm which Expo tokens are currently registered for the account.
+
 ### Register Device
 
 `POST /devices/`

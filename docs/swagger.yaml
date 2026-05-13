@@ -430,6 +430,16 @@ definitions:
     required:
     - title
     type: object
+  v1.DeviceTokenList:
+    properties:
+      devices:
+        items:
+          $ref: '#/definitions/entity.DeviceToken'
+        type: array
+      total:
+        example: 2
+        type: integer
+    type: object
   v1.Error:
     properties:
       error:
@@ -832,6 +842,29 @@ paths:
       tags:
       - auth
   /devices:
+    get:
+      description: List active Expo push tokens for the current user
+      operationId: list-devices
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/v1.DeviceTokenList'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/v1.Error'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/v1.Error'
+      security:
+      - BearerAuth: []
+      summary: List devices
+      tags:
+      - devices
     post:
       consumes:
       - application/json

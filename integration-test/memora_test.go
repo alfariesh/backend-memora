@@ -201,6 +201,27 @@ func TestHTTPDevicesAndNotificationsV1(t *testing.T) {
 	ctx, cancel = context.WithTimeout(t.Context(), requestTimeout)
 	defer cancel()
 
+	resp, err = doAuthenticatedRequest(ctx, http.MethodGet, basePathV1+"/devices/", http.NoBody, token)
+	if err != nil {
+		t.Fatalf("List devices: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+
+	devices := parseJSON[struct {
+		Devices []deviceResponse `json:"devices"`
+		Total   int              `json:"total"`
+	}](t, resp)
+	if devices.Total != 1 || len(devices.Devices) != 1 || devices.Devices[0].ID != device.ID {
+		t.Fatalf("unexpected devices response: %+v", devices)
+	}
+
+	ctx, cancel = context.WithTimeout(t.Context(), requestTimeout)
+	defer cancel()
+
 	resp, err = doAuthenticatedRequest(ctx, http.MethodGet, basePathV1+"/notifications/?limit=10&offset=0", http.NoBody, token)
 	if err != nil {
 		t.Fatalf("List notifications: %v", err)
@@ -242,6 +263,27 @@ func TestHTTPDevicesAndNotificationsV1(t *testing.T) {
 
 	if resp.StatusCode != http.StatusNoContent {
 		t.Fatalf("expected 204, got %d", resp.StatusCode)
+	}
+
+	ctx, cancel = context.WithTimeout(t.Context(), requestTimeout)
+	defer cancel()
+
+	resp, err = doAuthenticatedRequest(ctx, http.MethodGet, basePathV1+"/devices/", http.NoBody, token)
+	if err != nil {
+		t.Fatalf("List devices after delete: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+
+	devices = parseJSON[struct {
+		Devices []deviceResponse `json:"devices"`
+		Total   int              `json:"total"`
+	}](t, resp)
+	if devices.Total != 0 || len(devices.Devices) != 0 {
+		t.Fatalf("expected no active devices, got %+v", devices)
 	}
 }
 

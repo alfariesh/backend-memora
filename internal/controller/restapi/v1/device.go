@@ -5,10 +5,39 @@ import (
 	"net/http"
 
 	"github.com/evrone/go-clean-template/internal/controller/restapi/v1/request"
-	_ "github.com/evrone/go-clean-template/internal/controller/restapi/v1/response" // for swaggo
+	"github.com/evrone/go-clean-template/internal/controller/restapi/v1/response"
 	"github.com/evrone/go-clean-template/internal/entity"
 	"github.com/gofiber/fiber/v2"
 )
+
+// @Summary     List devices
+// @Description List active Expo push tokens for the current user
+// @ID          list-devices
+// @Tags        devices
+// @Produce     json
+// @Success     200 {object} response.DeviceTokenList
+// @Failure     401 {object} response.Error
+// @Failure     500 {object} response.Error
+// @Security    BearerAuth
+// @Router      /devices [get]
+func (r *V1) listDevices(ctx *fiber.Ctx) error {
+	userID, ok := ctx.Locals("userID").(string)
+	if !ok {
+		return errorResponse(ctx, http.StatusUnauthorized, "unauthorized")
+	}
+
+	devices, err := r.d.List(ctx.UserContext(), userID)
+	if err != nil {
+		r.l.Error(err, "restapi - v1 - listDevices")
+
+		return errorResponse(ctx, http.StatusInternalServerError, "internal server error")
+	}
+
+	return ctx.Status(http.StatusOK).JSON(response.DeviceTokenList{
+		Devices: devices,
+		Total:   len(devices),
+	})
+}
 
 // @Summary     Register device
 // @Description Register or reactivate an Expo push token for the current user

@@ -590,6 +590,21 @@ func (mr *MockDeviceTokenMockRecorder) Delete(ctx, userID, id any) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockDeviceToken)(nil).Delete), ctx, userID, id)
 }
 
+// List mocks base method.
+func (m *MockDeviceToken) List(ctx context.Context, userID string) ([]entity.DeviceToken, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "List", ctx, userID)
+	ret0, _ := ret[0].([]entity.DeviceToken)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// List indicates an expected call of List.
+func (mr *MockDeviceTokenMockRecorder) List(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockDeviceToken)(nil).List), ctx, userID)
+}
+
 // Register mocks base method.
 func (m *MockDeviceToken) Register(ctx context.Context, userID, token, platform, name string) (entity.DeviceToken, error) {
 	m.ctrl.T.Helper()
