@@ -3,6 +3,7 @@ package usecase
 
 import (
 	"context"
+	"time"
 
 	"github.com/evrone/go-clean-template/internal/entity"
 )
@@ -31,5 +32,34 @@ type (
 		Update(ctx context.Context, userID, taskID, title, description string) (entity.Task, error)
 		Transition(ctx context.Context, userID, taskID string, newStatus entity.TaskStatus) (entity.Task, error)
 		Delete(ctx context.Context, userID, taskID string) error
+	}
+
+	// ImportantDay -.
+	ImportantDay interface {
+		Create(ctx context.Context, userID string, params entity.ImportantDayParams) (entity.ImportantDay, error)
+		Get(ctx context.Context, userID, id string) (entity.ImportantDay, error)
+		List(ctx context.Context, userID string, dayType *entity.ImportantDayType, limit, offset int) ([]entity.ImportantDay, int, error)
+		Upcoming(ctx context.Context, userID string, from time.Time, days, limit, offset int) ([]entity.ImportantDayUpcoming, int, error)
+		Update(ctx context.Context, userID, id string, params entity.ImportantDayParams) (entity.ImportantDay, error)
+		Delete(ctx context.Context, userID, id string) error
+		ReplaceReminderRules(ctx context.Context, userID, id string, rules []entity.ReminderRuleParams) ([]entity.ReminderRule, error)
+	}
+
+	// Notification -.
+	Notification interface {
+		List(ctx context.Context, userID string, unreadOnly bool, limit, offset int) ([]entity.Notification, int, error)
+		MarkRead(ctx context.Context, userID, id string) (entity.Notification, error)
+		MarkAllRead(ctx context.Context, userID string) error
+	}
+
+	// DeviceToken -.
+	DeviceToken interface {
+		Register(ctx context.Context, userID, token, platform, name string) (entity.DeviceToken, error)
+		Delete(ctx context.Context, userID, id string) error
+	}
+
+	// ReminderWorker -.
+	ReminderWorker interface {
+		RunOnce(ctx context.Context, now time.Time, limit int) (int, error)
 	}
 )

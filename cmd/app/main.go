@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	_ "time/tzdata"
 
 	"github.com/evrone/go-clean-template/config"
 	"github.com/evrone/go-clean-template/internal/app"

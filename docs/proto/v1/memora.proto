@@ -1,0 +1,189 @@
+syntax = "proto3";
+
+package grpc.v1;
+
+option go_package = "docs/proto/v1";
+
+service ImportantDayService {
+  rpc CreateImportantDay (CreateImportantDayRequest) returns (ImportantDayResponse);
+  rpc GetImportantDay (GetImportantDayRequest) returns (ImportantDayResponse);
+  rpc ListImportantDays (ListImportantDaysRequest) returns (ListImportantDaysResponse);
+  rpc UpcomingImportantDays (UpcomingImportantDaysRequest) returns (UpcomingImportantDaysResponse);
+  rpc UpdateImportantDay (UpdateImportantDayRequest) returns (ImportantDayResponse);
+  rpc ReplaceImportantDayReminders (ReplaceReminderRulesRequest) returns (ReminderRulesResponse);
+  rpc DeleteImportantDay (DeleteImportantDayRequest) returns (DeleteImportantDayResponse);
+}
+
+service NotificationService {
+  rpc ListNotifications (ListNotificationsRequest) returns (ListNotificationsResponse);
+  rpc MarkNotificationRead (MarkNotificationReadRequest) returns (NotificationResponse);
+  rpc MarkAllNotificationsRead (MarkAllNotificationsReadRequest) returns (MarkAllNotificationsReadResponse);
+}
+
+service DeviceService {
+  rpc RegisterDevice (RegisterDeviceRequest) returns (DeviceTokenResponse);
+  rpc DeleteDevice (DeleteDeviceRequest) returns (DeleteDeviceResponse);
+}
+
+message ReminderRuleRequest {
+  int32 offset_days = 1;
+  repeated string channels = 2;
+}
+
+message CreateImportantDayRequest {
+  string title = 1;
+  string type = 2;
+  string person_name = 3;
+  string relationship = 4;
+  string description = 5;
+  optional int32 event_year = 6;
+  int32 event_month = 7;
+  int32 event_day = 8;
+  string timezone = 9;
+  string reminder_time = 10;
+  repeated ReminderRuleRequest reminder_rules = 11;
+}
+
+message UpdateImportantDayRequest {
+  string id = 1;
+  string title = 2;
+  string type = 3;
+  string person_name = 4;
+  string relationship = 5;
+  string description = 6;
+  optional int32 event_year = 7;
+  int32 event_month = 8;
+  int32 event_day = 9;
+  string timezone = 10;
+  string reminder_time = 11;
+}
+
+message GetImportantDayRequest {
+  string id = 1;
+}
+
+message ListImportantDaysRequest {
+  string type = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+message UpcomingImportantDaysRequest {
+  int32 days = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+message ReplaceReminderRulesRequest {
+  string id = 1;
+  repeated ReminderRuleRequest rules = 2;
+}
+
+message DeleteImportantDayRequest {
+  string id = 1;
+}
+
+message ImportantDayResponse {
+  string id = 1;
+  string user_id = 2;
+  string title = 3;
+  string type = 4;
+  string person_name = 5;
+  string relationship = 6;
+  string description = 7;
+  optional int32 event_year = 8;
+  int32 event_month = 9;
+  int32 event_day = 10;
+  string recurrence = 11;
+  string timezone = 12;
+  string reminder_time = 13;
+  string created_at = 14;
+  string updated_at = 15;
+}
+
+message UpcomingImportantDayResponse {
+  ImportantDayResponse important_day = 1;
+  string occurrence_date = 2;
+  int32 days_until = 3;
+  optional int32 anniversary = 4;
+}
+
+message ListImportantDaysResponse {
+  repeated ImportantDayResponse important_days = 1;
+  int32 total = 2;
+}
+
+message UpcomingImportantDaysResponse {
+  repeated UpcomingImportantDayResponse important_days = 1;
+  int32 total = 2;
+}
+
+message ReminderRuleResponse {
+  string id = 1;
+  string user_id = 2;
+  string important_day_id = 3;
+  int32 offset_days = 4;
+  repeated string channels = 5;
+  string created_at = 6;
+  string updated_at = 7;
+}
+
+message ReminderRulesResponse {
+  repeated ReminderRuleResponse rules = 1;
+}
+
+message DeleteImportantDayResponse {}
+
+message ListNotificationsRequest {
+  bool unread_only = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+message MarkNotificationReadRequest {
+  string id = 1;
+}
+
+message MarkAllNotificationsReadRequest {}
+
+message NotificationResponse {
+  string id = 1;
+  string user_id = 2;
+  optional string important_day_id = 3;
+  string type = 4;
+  string title = 5;
+  string body = 6;
+  string data = 7;
+  optional string read_at = 8;
+  string created_at = 9;
+}
+
+message ListNotificationsResponse {
+  repeated NotificationResponse notifications = 1;
+  int32 total = 2;
+}
+
+message MarkAllNotificationsReadResponse {}
+
+message RegisterDeviceRequest {
+  string token = 1;
+  string platform = 2;
+  string name = 3;
+}
+
+message DeleteDeviceRequest {
+  string id = 1;
+}
+
+message DeviceTokenResponse {
+  string id = 1;
+  string user_id = 2;
+  string token = 3;
+  string platform = 4;
+  string name = 5;
+  bool active = 6;
+  string created_at = 7;
+  string updated_at = 8;
+}
+
+message DeleteDeviceResponse {}

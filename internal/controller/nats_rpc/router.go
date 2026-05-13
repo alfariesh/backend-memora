@@ -9,11 +9,20 @@ import (
 )
 
 // NewRouter -.
-func NewRouter(t usecase.Translation, u usecase.User, tk usecase.Task, j *jwt.Manager, l logger.Interface) map[string]server.CallHandler {
+func NewRouter(
+	t usecase.Translation,
+	u usecase.User,
+	tk usecase.Task,
+	id usecase.ImportantDay,
+	n usecase.Notification,
+	d usecase.DeviceToken,
+	j *jwt.Manager,
+	l logger.Interface,
+) map[string]server.CallHandler {
 	routes := make(map[string]server.CallHandler)
 
 	{
-		v1.NewRoutes(routes, t, u, tk, j, l)
+		v1.NewRoutes(routes, t, u, tk, id, n, d, j, l)
 	}
 
 	return routes

@@ -16,7 +16,8 @@ COPY . /app
 WORKDIR /app
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-    go build -tags migrate -o /bin/app ./cmd/app
+    go build -tags migrate -o /bin/app ./cmd/app && \
+    go build -o /bin/worker ./cmd/worker
 
 # Step 3: Final
 FROM scratch
@@ -24,6 +25,7 @@ FROM scratch
 COPY --from=builder /app/config /config
 COPY --from=builder /app/migrations /migrations
 COPY --from=builder /bin/app /app
+COPY --from=builder /bin/worker /worker
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 CMD ["/app"]

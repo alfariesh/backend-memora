@@ -12,6 +12,9 @@ type V1 struct {
 	t  usecase.Translation
 	u  usecase.User
 	tk usecase.Task
+	id usecase.ImportantDay
+	n  usecase.Notification
+	d  usecase.DeviceToken
 	j  *jwt.Manager
 	l  logger.Interface
 	v  *validator.Validate

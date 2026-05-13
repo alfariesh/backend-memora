@@ -15,6 +15,10 @@ import (
 	"github.com/evrone/go-clean-template/internal/controller/restapi"
 	"github.com/evrone/go-clean-template/internal/repo/persistent"
 	"github.com/evrone/go-clean-template/internal/repo/webapi"
+	"github.com/evrone/go-clean-template/internal/usecase/device"
+	"github.com/evrone/go-clean-template/internal/usecase/importantday"
+	"github.com/evrone/go-clean-template/internal/usecase/notification"
+	"github.com/evrone/go-clean-template/internal/usecase/reminder"
 	"github.com/evrone/go-clean-template/internal/usecase/task"
 	"github.com/evrone/go-clean-template/internal/usecase/translation"
 	"github.com/evrone/go-clean-template/internal/usecase/user"
@@ -29,9 +33,13 @@ import (
 )
 
 type useCases struct {
-	translation *translation.UseCase
-	user        *user.UseCase
-	task        *task.UseCase
+	translation  *translation.UseCase
+	user         *user.UseCase
+	task         *task.UseCase
+	importantDay *importantday.UseCase
+	notification *notification.UseCase
+	device       *device.UseCase
+	reminder     *reminder.UseCase
 }
 
 type servers struct {
@@ -41,21 +49,40 @@ type servers struct {
 	http *httpserver.Server
 }
 
-func initUseCases(pg *postgres.Postgres, jwtManager *jwt.Manager) useCases {
+func initUseCases(cfg *config.Config, pg *postgres.Postgres, jwtManager *jwt.Manager) useCases {
 	userRepo := persistent.NewUserRepo(pg)
 	taskRepo := persistent.NewTaskRepo(pg)
 	translationRepo := persistent.NewTranslationRepo(pg)
+	importantDayRepo := persistent.NewImportantDayRepo(pg)
+	reminderRuleRepo := persistent.NewReminderRuleRepo(pg)
+	reminderJobRepo := persistent.NewReminderJobRepo(pg)
+	notificationRepo := persistent.NewNotificationRepo(pg)
+	deviceTokenRepo := persistent.NewDeviceTokenRepo(pg)
+	emailSender := webapi.NewResendSender(cfg.Resend.APIKey, cfg.Resend.FromEmail)
+	pushSender := webapi.NewExpoPushSender(cfg.Expo.PushAccessToken)
 
 	return useCases{
-		user:        user.New(userRepo, jwtManager),
-		task:        task.New(taskRepo),
-		translation: translation.New(translationRepo, webapi.New()),
+		user:         user.New(userRepo, jwtManager),
+		task:         task.New(taskRepo),
+		translation:  translation.New(translationRepo, webapi.New()),
+		importantDay: importantday.New(importantDayRepo, reminderRuleRepo, reminderJobRepo),
+		notification: notification.New(notificationRepo),
+		device:       device.New(deviceTokenRepo),
+		reminder: reminder.New(
+			reminderJobRepo,
+			importantDayRepo,
+			userRepo,
+			notificationRepo,
+			deviceTokenRepo,
+			emailSender,
+			pushSender,
+		),
 	}
 }
 
 func initServers(cfg *config.Config, uc useCases, jwtManager *jwt.Manager, l logger.Interface) servers {
 	// RabbitMQ RPC Server
-	rmqRouter := amqprpc.NewRouter(uc.translation, uc.user, uc.task, jwtManager, l)
+	rmqRouter := amqprpc.NewRouter(uc.translation, uc.user, uc.task, uc.importantDay, uc.notification, uc.device, jwtManager, l)
 
 	rmqServer, err := rmqRPCServer.New(cfg.RMQ.URL, cfg.RMQ.ServerExchange, rmqRouter, l)
 	if err != nil {
@@ -63,7 +90,7 @@ func initServers(cfg *config.Config, uc useCases, jwtManager *jwt.Manager, l log
 	}
 
 	// NATS RPC Server
-	natsRouter := natsrpc.NewRouter(uc.translation, uc.user, uc.task, jwtManager, l)
+	natsRouter := natsrpc.NewRouter(uc.translation, uc.user, uc.task, uc.importantDay, uc.notification, uc.device, jwtManager, l)
 
 	natsServer, err := natsRPCServer.New(cfg.NATS.URL, cfg.NATS.ServerExchange, natsRouter, l)
 	if err != nil {
@@ -75,11 +102,11 @@ func initServers(cfg *config.Config, uc useCases, jwtManager *jwt.Manager, l log
 		grpcserver.Port(cfg.GRPC.Port),
 		grpcserver.ServerOptions(pbgrpc.UnaryInterceptor(grpcmw.AuthInterceptor(jwtManager))),
 	)
-	grpc.NewRouter(grpcServer.App, uc.translation, uc.user, uc.task, l)
+	grpc.NewRouter(grpcServer.App, uc.translation, uc.user, uc.task, uc.importantDay, uc.notification, uc.device, l)
 
 	// HTTP Server
 	httpServer := httpserver.New(l, httpserver.Port(cfg.HTTP.Port), httpserver.Prefork(cfg.HTTP.UsePreforkMode))
-	restapi.NewRouter(httpServer.App, cfg, uc.translation, uc.user, uc.task, jwtManager, l)
+	restapi.NewRouter(httpServer.App, cfg, uc.translation, uc.user, uc.task, uc.importantDay, uc.notification, uc.device, jwtManager, l)
 
 	return servers{
 		rmq:  rmqServer,
@@ -150,7 +177,7 @@ func Run(cfg *config.Config) {
 	// JWT
 	jwtManager := jwt.New(cfg.JWT.Secret, cfg.JWT.TokenExpiry)
 
-	uc := initUseCases(pg, jwtManager)
+	uc := initUseCases(cfg, pg, jwtManager)
 	s := initServers(cfg, uc, jwtManager, l)
 	s.startServers()
 	s.waitForShutdown(l)

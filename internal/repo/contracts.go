@@ -3,6 +3,7 @@ package repo
 
 import (
 	"context"
+	"time"
 
 	"github.com/evrone/go-clean-template/internal/entity"
 )
@@ -42,5 +43,69 @@ type (
 		Status *entity.TaskStatus
 		Limit  uint64
 		Offset uint64
+	}
+
+	// ImportantDayRepo -.
+	ImportantDayRepo interface {
+		Store(ctx context.Context, day *entity.ImportantDay) error
+		GetByID(ctx context.Context, userID, id string) (entity.ImportantDay, error)
+		List(ctx context.Context, userID string, filter ImportantDayFilter) ([]entity.ImportantDay, int, error)
+		Update(ctx context.Context, day *entity.ImportantDay) error
+		Delete(ctx context.Context, userID, id string) error
+	}
+
+	// ReminderRuleRepo -.
+	ReminderRuleRepo interface {
+		ReplaceForImportantDay(ctx context.Context, userID, importantDayID string, rules []entity.ReminderRule) error
+		GetForImportantDay(ctx context.Context, userID, importantDayID string) ([]entity.ReminderRule, error)
+	}
+
+	// ReminderJobRepo -.
+	ReminderJobRepo interface {
+		Store(ctx context.Context, job *entity.ReminderJob) error
+		ReplacePendingForImportantDay(ctx context.Context, userID, importantDayID string, jobs []entity.ReminderJob) error
+		ClaimDue(ctx context.Context, now time.Time, limit int) ([]entity.ReminderJob, error)
+		MarkSent(ctx context.Context, id string, sentAt time.Time) error
+		MarkFailed(ctx context.Context, id, reason string, retry bool) error
+	}
+
+	// NotificationRepo -.
+	NotificationRepo interface {
+		Store(ctx context.Context, notification *entity.Notification) error
+		List(ctx context.Context, userID string, filter NotificationFilter) ([]entity.Notification, int, error)
+		GetByID(ctx context.Context, userID, id string) (entity.Notification, error)
+		MarkRead(ctx context.Context, userID, id string, readAt time.Time) error
+		MarkAllRead(ctx context.Context, userID string, readAt time.Time) error
+	}
+
+	// DeviceTokenRepo -.
+	DeviceTokenRepo interface {
+		Store(ctx context.Context, token *entity.DeviceToken) error
+		Delete(ctx context.Context, userID, id string) error
+		ListActiveByUser(ctx context.Context, userID string) ([]entity.DeviceToken, error)
+	}
+
+	// EmailSender -.
+	EmailSender interface {
+		Send(ctx context.Context, to, subject, html string) (string, error)
+	}
+
+	// PushSender -.
+	PushSender interface {
+		Send(ctx context.Context, token, title, body string, data map[string]string) (string, error)
+	}
+
+	// ImportantDayFilter -.
+	ImportantDayFilter struct {
+		Type   *entity.ImportantDayType
+		Limit  uint64
+		Offset uint64
+	}
+
+	// NotificationFilter -.
+	NotificationFilter struct {
+		UnreadOnly bool
+		Limit      uint64
+		Offset     uint64
 	}
 )

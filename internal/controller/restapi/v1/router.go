@@ -10,8 +10,18 @@ import (
 )
 
 // NewRoutes -.
-func NewRoutes(apiV1Group fiber.Router, t usecase.Translation, u usecase.User, tk usecase.Task, jwtManager *jwt.Manager, l logger.Interface) {
-	r := &V1{t: t, u: u, tk: tk, l: l, v: validator.New(validator.WithRequiredStructEnabled())}
+func NewRoutes(
+	apiV1Group fiber.Router,
+	t usecase.Translation,
+	u usecase.User,
+	tk usecase.Task,
+	id usecase.ImportantDay,
+	n usecase.Notification,
+	d usecase.DeviceToken,
+	jwtManager *jwt.Manager,
+	l logger.Interface,
+) {
+	r := &V1{t: t, u: u, tk: tk, id: id, n: n, d: d, l: l, v: validator.New(validator.WithRequiredStructEnabled())}
 
 	// Public routes
 	authGroup := apiV1Group.Group("/auth")
@@ -42,5 +52,29 @@ func NewRoutes(apiV1Group fiber.Router, t usecase.Translation, u usecase.User, t
 	{
 		translationGroup.Get("/history", r.history)
 		translationGroup.Post("/do-translate", r.doTranslate)
+	}
+
+	importantDayGroup := protected.Group("/important-days")
+	{
+		importantDayGroup.Post("/", r.createImportantDay)
+		importantDayGroup.Get("/", r.listImportantDays)
+		importantDayGroup.Get("/upcoming", r.upcomingImportantDays)
+		importantDayGroup.Get("/:id", r.getImportantDay)
+		importantDayGroup.Put("/:id", r.updateImportantDay)
+		importantDayGroup.Put("/:id/reminders", r.replaceImportantDayReminders)
+		importantDayGroup.Delete("/:id", r.deleteImportantDay)
+	}
+
+	notificationGroup := protected.Group("/notifications")
+	{
+		notificationGroup.Get("/", r.listNotifications)
+		notificationGroup.Patch("/:id/read", r.markNotificationRead)
+		notificationGroup.Patch("/read-all", r.markAllNotificationsRead)
+	}
+
+	deviceGroup := protected.Group("/devices")
+	{
+		deviceGroup.Post("/", r.registerDevice)
+		deviceGroup.Delete("/:id", r.deleteDevice)
 	}
 }

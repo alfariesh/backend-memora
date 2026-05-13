@@ -20,6 +20,9 @@ type (
 		JWT     jwt
 		Metrics metrics
 		Swagger swagger
+		Resend  resend
+		Expo    expo
+		Worker  worker
 	}
 
 	// App -.
@@ -77,6 +80,23 @@ type (
 	// Swagger -.
 	swagger struct {
 		Enabled bool `env:"SWAGGER_ENABLED" envDefault:"false"`
+	}
+
+	// Resend -.
+	resend struct {
+		APIKey    string `env:"RESEND_API_KEY" envDefault:""`
+		FromEmail string `env:"RESEND_FROM_EMAIL" envDefault:""`
+	}
+
+	// Expo -.
+	expo struct {
+		PushAccessToken string `env:"EXPO_PUSH_ACCESS_TOKEN" envDefault:""`
+	}
+
+	// Worker -.
+	worker struct {
+		BatchSize    int           `env:"REMINDER_WORKER_BATCH_SIZE" envDefault:"50"`
+		PollInterval time.Duration `env:"REMINDER_WORKER_POLL_INTERVAL" envDefault:"1m"`
 	}
 )
 
