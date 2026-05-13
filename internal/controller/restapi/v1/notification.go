@@ -9,6 +9,19 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+// @Summary     List notifications
+// @Description List in-app notifications for the current user
+// @ID          list-notifications
+// @Tags        notifications
+// @Produce     json
+// @Param       unread_only query    bool false "Only unread notifications" default(false)
+// @Param       limit       query    int  false "Limit"                     default(20)
+// @Param       offset      query    int  false "Offset"                    default(0)
+// @Success     200         {object} response.NotificationList
+// @Failure     401         {object} response.Error
+// @Failure     500         {object} response.Error
+// @Security    BearerAuth
+// @Router      /notifications [get]
 func (r *V1) listNotifications(ctx *fiber.Ctx) error {
 	userID, ok := ctx.Locals("userID").(string)
 	if !ok {
@@ -29,6 +42,18 @@ func (r *V1) listNotifications(ctx *fiber.Ctx) error {
 	})
 }
 
+// @Summary     Mark notification read
+// @Description Mark one notification as read
+// @ID          mark-notification-read
+// @Tags        notifications
+// @Produce     json
+// @Param       id  path     string true "Notification ID"
+// @Success     200 {object} entity.Notification
+// @Failure     401 {object} response.Error
+// @Failure     404 {object} response.Error
+// @Failure     500 {object} response.Error
+// @Security    BearerAuth
+// @Router      /notifications/{id}/read [patch]
 func (r *V1) markNotificationRead(ctx *fiber.Ctx) error {
 	userID, ok := ctx.Locals("userID").(string)
 	if !ok {
@@ -49,6 +74,15 @@ func (r *V1) markNotificationRead(ctx *fiber.Ctx) error {
 	return ctx.Status(http.StatusOK).JSON(notification)
 }
 
+// @Summary     Mark all notifications read
+// @Description Mark all notifications for the current user as read
+// @ID          mark-all-notifications-read
+// @Tags        notifications
+// @Success     204 "No Content"
+// @Failure     401 {object} response.Error
+// @Failure     500 {object} response.Error
+// @Security    BearerAuth
+// @Router      /notifications/read-all [patch]
 func (r *V1) markAllNotificationsRead(ctx *fiber.Ctx) error {
 	userID, ok := ctx.Locals("userID").(string)
 	if !ok {

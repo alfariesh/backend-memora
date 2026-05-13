@@ -12,6 +12,19 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+// @Summary     Create important day
+// @Description Create an important day and its reminder rules for the current user
+// @ID          create-important-day
+// @Tags        important-days
+// @Accept      json
+// @Produce     json
+// @Param       request body     request.CreateImportantDay true "Important day data"
+// @Success     201     {object} entity.ImportantDay
+// @Failure     400     {object} response.Error
+// @Failure     401     {object} response.Error
+// @Failure     500     {object} response.Error
+// @Security    BearerAuth
+// @Router      /important-days [post]
 func (r *V1) createImportantDay(ctx *fiber.Ctx) error {
 	userID, ok := ctx.Locals("userID").(string)
 	if !ok {
@@ -45,6 +58,20 @@ func (r *V1) createImportantDay(ctx *fiber.Ctx) error {
 	return ctx.Status(http.StatusCreated).JSON(day)
 }
 
+// @Summary     List important days
+// @Description List important days for the current user with optional type filtering
+// @ID          list-important-days
+// @Tags        important-days
+// @Produce     json
+// @Param       type   query    string false "Filter by important day type" Enums(birthday, wedding, memorial, graduation, first_day, document, subscription, medical, custom)
+// @Param       limit  query    int    false "Limit"  default(10)
+// @Param       offset query    int    false "Offset" default(0)
+// @Success     200    {object} response.ImportantDayList
+// @Failure     400    {object} response.Error
+// @Failure     401    {object} response.Error
+// @Failure     500    {object} response.Error
+// @Security    BearerAuth
+// @Router      /important-days [get]
 func (r *V1) listImportantDays(ctx *fiber.Ctx) error {
 	userID, ok := ctx.Locals("userID").(string)
 	if !ok {
@@ -76,6 +103,19 @@ func (r *V1) listImportantDays(ctx *fiber.Ctx) error {
 	})
 }
 
+// @Summary     List upcoming important days
+// @Description List upcoming occurrences for the current user's important days
+// @ID          upcoming-important-days
+// @Tags        important-days
+// @Produce     json
+// @Param       days   query    int false "Lookahead window in days" default(365)
+// @Param       limit  query    int false "Limit"                    default(10)
+// @Param       offset query    int false "Offset"                   default(0)
+// @Success     200    {object} response.UpcomingImportantDayList
+// @Failure     401    {object} response.Error
+// @Failure     500    {object} response.Error
+// @Security    BearerAuth
+// @Router      /important-days/upcoming [get]
 func (r *V1) upcomingImportantDays(ctx *fiber.Ctx) error {
 	userID, ok := ctx.Locals("userID").(string)
 	if !ok {
@@ -101,6 +141,19 @@ func (r *V1) upcomingImportantDays(ctx *fiber.Ctx) error {
 	})
 }
 
+// @Summary     Get important day
+// @Description Get an important day by ID
+// @ID          get-important-day
+// @Tags        important-days
+// @Produce     json
+// @Param       id  path     string true "Important day ID"
+// @Success     200 {object} entity.ImportantDay
+// @Failure     401 {object} response.Error
+// @Failure     403 {object} response.Error
+// @Failure     404 {object} response.Error
+// @Failure     500 {object} response.Error
+// @Security    BearerAuth
+// @Router      /important-days/{id} [get]
 func (r *V1) getImportantDay(ctx *fiber.Ctx) error {
 	userID, ok := ctx.Locals("userID").(string)
 	if !ok {
@@ -125,6 +178,21 @@ func (r *V1) getImportantDay(ctx *fiber.Ctx) error {
 	return ctx.Status(http.StatusOK).JSON(day)
 }
 
+// @Summary     Update important day
+// @Description Update an important day by ID
+// @ID          update-important-day
+// @Tags        important-days
+// @Accept      json
+// @Produce     json
+// @Param       id      path     string                     true "Important day ID"
+// @Param       request body     request.UpdateImportantDay true "Important day data"
+// @Success     200     {object} entity.ImportantDay
+// @Failure     400     {object} response.Error
+// @Failure     401     {object} response.Error
+// @Failure     404     {object} response.Error
+// @Failure     500     {object} response.Error
+// @Security    BearerAuth
+// @Router      /important-days/{id} [put]
 func (r *V1) updateImportantDay(ctx *fiber.Ctx) error {
 	userID, ok := ctx.Locals("userID").(string)
 	if !ok {
@@ -162,6 +230,21 @@ func (r *V1) updateImportantDay(ctx *fiber.Ctx) error {
 	return ctx.Status(http.StatusOK).JSON(day)
 }
 
+// @Summary     Replace important day reminders
+// @Description Replace reminder rules for an important day
+// @ID          replace-important-day-reminders
+// @Tags        important-days
+// @Accept      json
+// @Produce     json
+// @Param       id      path     string                       true "Important day ID"
+// @Param       request body     request.ReplaceReminderRules true "Reminder rules"
+// @Success     200     {object} response.ReminderRuleList
+// @Failure     400     {object} response.Error
+// @Failure     401     {object} response.Error
+// @Failure     404     {object} response.Error
+// @Failure     500     {object} response.Error
+// @Security    BearerAuth
+// @Router      /important-days/{id}/reminders [put]
 func (r *V1) replaceImportantDayReminders(ctx *fiber.Ctx) error {
 	userID, ok := ctx.Locals("userID").(string)
 	if !ok {
@@ -195,6 +278,17 @@ func (r *V1) replaceImportantDayReminders(ctx *fiber.Ctx) error {
 	return ctx.Status(http.StatusOK).JSON(response.ReminderRuleList{Rules: rules})
 }
 
+// @Summary     Delete important day
+// @Description Delete an important day by ID
+// @ID          delete-important-day
+// @Tags        important-days
+// @Param       id  path     string true "Important day ID"
+// @Success     204 "No Content"
+// @Failure     401 {object} response.Error
+// @Failure     404 {object} response.Error
+// @Failure     500 {object} response.Error
+// @Security    BearerAuth
+// @Router      /important-days/{id} [delete]
 func (r *V1) deleteImportantDay(ctx *fiber.Ctx) error {
 	userID, ok := ctx.Locals("userID").(string)
 	if !ok {

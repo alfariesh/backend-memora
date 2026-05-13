@@ -18,8 +18,8 @@ import (
 // NewRouter -.
 // Swagger spec:
 //
-//	@title       Go Clean Template API
-//	@description Multi-domain clean architecture template with translation, user, and task management
+//	@title       Memora API
+//	@description Backend API for Memora important days, reminders, notifications, devices, auth, and supporting template endpoints
 //	@version     1.0
 //	@host        localhost:8080
 //	@BasePath    /v1

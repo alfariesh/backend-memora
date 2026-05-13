@@ -5,10 +5,24 @@ import (
 	"net/http"
 
 	"github.com/evrone/go-clean-template/internal/controller/restapi/v1/request"
+	_ "github.com/evrone/go-clean-template/internal/controller/restapi/v1/response" // for swaggo
 	"github.com/evrone/go-clean-template/internal/entity"
 	"github.com/gofiber/fiber/v2"
 )
 
+// @Summary     Register device
+// @Description Register or reactivate an Expo push token for the current user
+// @ID          register-device
+// @Tags        devices
+// @Accept      json
+// @Produce     json
+// @Param       request body     request.RegisterDevice true "Device token data"
+// @Success     201     {object} entity.DeviceToken
+// @Failure     400     {object} response.Error
+// @Failure     401     {object} response.Error
+// @Failure     500     {object} response.Error
+// @Security    BearerAuth
+// @Router      /devices [post]
 func (r *V1) registerDevice(ctx *fiber.Ctx) error {
 	userID, ok := ctx.Locals("userID").(string)
 	if !ok {
@@ -42,6 +56,17 @@ func (r *V1) registerDevice(ctx *fiber.Ctx) error {
 	return ctx.Status(http.StatusCreated).JSON(token)
 }
 
+// @Summary     Delete device
+// @Description Deactivate a registered device token by ID
+// @ID          delete-device
+// @Tags        devices
+// @Param       id  path     string true "Device token ID"
+// @Success     204 "No Content"
+// @Failure     401 {object} response.Error
+// @Failure     404 {object} response.Error
+// @Failure     500 {object} response.Error
+// @Security    BearerAuth
+// @Router      /devices/{id} [delete]
 func (r *V1) deleteDevice(ctx *fiber.Ctx) error {
 	userID, ok := ctx.Locals("userID").(string)
 	if !ok {

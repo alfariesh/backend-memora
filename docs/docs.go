@@ -121,6 +121,695 @@ const docTemplate = `{
                 }
             }
         },
+        "/devices": {
+            "post": {
+                "description": "Register or reactivate an Expo push token for the current user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "devices"
+                ],
+                "summary": "Register device",
+                "operationId": "register-device",
+                "parameters": [
+                    {
+                        "description": "Device token data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/v1.RegisterDevice"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/entity.DeviceToken"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/devices/{id}": {
+            "delete": {
+                "description": "Deactivate a registered device token by ID",
+                "tags": [
+                    "devices"
+                ],
+                "summary": "Delete device",
+                "operationId": "delete-device",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Device token ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/important-days": {
+            "get": {
+                "description": "List important days for the current user with optional type filtering",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "important-days"
+                ],
+                "summary": "List important days",
+                "operationId": "list-important-days",
+                "parameters": [
+                    {
+                        "enum": [
+                            "birthday",
+                            "wedding",
+                            "memorial",
+                            "graduation",
+                            "first_day",
+                            "document",
+                            "subscription",
+                            "medical",
+                            "custom"
+                        ],
+                        "type": "string",
+                        "description": "Filter by important day type",
+                        "name": "type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/v1.ImportantDayList"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "description": "Create an important day and its reminder rules for the current user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "important-days"
+                ],
+                "summary": "Create important day",
+                "operationId": "create-important-day",
+                "parameters": [
+                    {
+                        "description": "Important day data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/v1.CreateImportantDay"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/entity.ImportantDay"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/important-days/upcoming": {
+            "get": {
+                "description": "List upcoming occurrences for the current user's important days",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "important-days"
+                ],
+                "summary": "List upcoming important days",
+                "operationId": "upcoming-important-days",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 365,
+                        "description": "Lookahead window in days",
+                        "name": "days",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/v1.UpcomingImportantDayList"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/important-days/{id}": {
+            "get": {
+                "description": "Get an important day by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "important-days"
+                ],
+                "summary": "Get important day",
+                "operationId": "get-important-day",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Important day ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entity.ImportantDay"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            },
+            "put": {
+                "description": "Update an important day by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "important-days"
+                ],
+                "summary": "Update important day",
+                "operationId": "update-important-day",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Important day ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Important day data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/v1.UpdateImportantDay"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entity.ImportantDay"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "description": "Delete an important day by ID",
+                "tags": [
+                    "important-days"
+                ],
+                "summary": "Delete important day",
+                "operationId": "delete-important-day",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Important day ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/important-days/{id}/reminders": {
+            "put": {
+                "description": "Replace reminder rules for an important day",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "important-days"
+                ],
+                "summary": "Replace important day reminders",
+                "operationId": "replace-important-day-reminders",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Important day ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Reminder rules",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/v1.ReplaceReminderRules"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/v1.ReminderRuleList"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/notifications": {
+            "get": {
+                "description": "List in-app notifications for the current user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "notifications"
+                ],
+                "summary": "List notifications",
+                "operationId": "list-notifications",
+                "parameters": [
+                    {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Only unread notifications",
+                        "name": "unread_only",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/v1.NotificationList"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/notifications/read-all": {
+            "patch": {
+                "description": "Mark all notifications for the current user as read",
+                "tags": [
+                    "notifications"
+                ],
+                "summary": "Mark all notifications read",
+                "operationId": "mark-all-notifications-read",
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/notifications/{id}/read": {
+            "patch": {
+                "description": "Mark one notification as read",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "notifications"
+                ],
+                "summary": "Mark notification read",
+                "operationId": "mark-notification-read",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Notification ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entity.Notification"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
         "/tasks": {
             "get": {
                 "description": "List tasks for the current user with optional filtering",
@@ -640,6 +1329,326 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "entity.DeviceToken": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "created_at": {
+                    "type": "string",
+                    "example": "2026-01-01T00:00:00Z"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Pixel 8"
+                },
+                "platform": {
+                    "type": "string",
+                    "example": "android"
+                },
+                "token": {
+                    "type": "string",
+                    "example": "ExpoPushToken[xxxxxxxxxxxxxxxxxxxxxx]"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "example": "2026-01-01T00:00:00Z"
+                },
+                "user_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                }
+            }
+        },
+        "entity.ImportantDay": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string",
+                    "example": "2026-01-01T00:00:00Z"
+                },
+                "description": {
+                    "type": "string",
+                    "example": "Buy flowers"
+                },
+                "event_day": {
+                    "type": "integer",
+                    "example": 13
+                },
+                "event_month": {
+                    "type": "integer",
+                    "example": 5
+                },
+                "event_year": {
+                    "type": "integer",
+                    "example": 1970
+                },
+                "id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "person_name": {
+                    "type": "string",
+                    "example": "Mom"
+                },
+                "recurrence": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/entity.Recurrence"
+                        }
+                    ],
+                    "example": "yearly"
+                },
+                "relationship": {
+                    "type": "string",
+                    "example": "mother"
+                },
+                "reminder_time": {
+                    "type": "string",
+                    "example": "09:00"
+                },
+                "timezone": {
+                    "type": "string",
+                    "example": "Asia/Jakarta"
+                },
+                "title": {
+                    "type": "string",
+                    "example": "Mom birthday"
+                },
+                "type": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/entity.ImportantDayType"
+                        }
+                    ],
+                    "example": "birthday"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "example": "2026-01-01T00:00:00Z"
+                },
+                "user_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                }
+            }
+        },
+        "entity.ImportantDayType": {
+            "type": "string",
+            "enum": [
+                "birthday",
+                "wedding",
+                "memorial",
+                "graduation",
+                "first_day",
+                "document",
+                "subscription",
+                "medical",
+                "custom"
+            ],
+            "x-enum-varnames": [
+                "ImportantDayTypeBirthday",
+                "ImportantDayTypeWedding",
+                "ImportantDayTypeMemorial",
+                "ImportantDayTypeGraduation",
+                "ImportantDayTypeFirstDay",
+                "ImportantDayTypeDocument",
+                "ImportantDayTypeSubscription",
+                "ImportantDayTypeMedical",
+                "ImportantDayTypeCustom"
+            ]
+        },
+        "entity.ImportantDayUpcoming": {
+            "type": "object",
+            "properties": {
+                "anniversary": {
+                    "type": "integer",
+                    "example": 56
+                },
+                "created_at": {
+                    "type": "string",
+                    "example": "2026-01-01T00:00:00Z"
+                },
+                "days_until": {
+                    "type": "integer",
+                    "example": 7
+                },
+                "description": {
+                    "type": "string",
+                    "example": "Buy flowers"
+                },
+                "event_day": {
+                    "type": "integer",
+                    "example": 13
+                },
+                "event_month": {
+                    "type": "integer",
+                    "example": 5
+                },
+                "event_year": {
+                    "type": "integer",
+                    "example": 1970
+                },
+                "id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "occurrence_date": {
+                    "type": "string",
+                    "example": "2026-05-13"
+                },
+                "person_name": {
+                    "type": "string",
+                    "example": "Mom"
+                },
+                "recurrence": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/entity.Recurrence"
+                        }
+                    ],
+                    "example": "yearly"
+                },
+                "relationship": {
+                    "type": "string",
+                    "example": "mother"
+                },
+                "reminder_time": {
+                    "type": "string",
+                    "example": "09:00"
+                },
+                "timezone": {
+                    "type": "string",
+                    "example": "Asia/Jakarta"
+                },
+                "title": {
+                    "type": "string",
+                    "example": "Mom birthday"
+                },
+                "type": {
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/entity.ImportantDayType"
+                        }
+                    ],
+                    "example": "birthday"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "example": "2026-01-01T00:00:00Z"
+                },
+                "user_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                }
+            }
+        },
+        "entity.Notification": {
+            "type": "object",
+            "properties": {
+                "body": {
+                    "type": "string",
+                    "example": "Mom birthday is in 7 days."
+                },
+                "created_at": {
+                    "type": "string",
+                    "example": "2026-01-01T00:00:00Z"
+                },
+                "data": {
+                    "type": "string",
+                    "example": "{}"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "important_day_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "read_at": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string",
+                    "example": "Mom birthday is coming"
+                },
+                "type": {
+                    "type": "string",
+                    "example": "reminder"
+                },
+                "user_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                }
+            }
+        },
+        "entity.Recurrence": {
+            "type": "string",
+            "enum": [
+                "yearly"
+            ],
+            "x-enum-varnames": [
+                "RecurrenceYearly"
+            ]
+        },
+        "entity.ReminderChannel": {
+            "type": "string",
+            "enum": [
+                "email",
+                "in_app",
+                "push"
+            ],
+            "x-enum-varnames": [
+                "ReminderChannelEmail",
+                "ReminderChannelInApp",
+                "ReminderChannelPush"
+            ]
+        },
+        "entity.ReminderRule": {
+            "type": "object",
+            "properties": {
+                "channels": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entity.ReminderChannel"
+                    },
+                    "example": [
+                        "email"
+                    ]
+                },
+                "created_at": {
+                    "type": "string",
+                    "example": "2026-01-01T00:00:00Z"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "important_day_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "offset_days": {
+                    "type": "integer",
+                    "example": 7
+                },
+                "updated_at": {
+                    "type": "string",
+                    "example": "2026-01-01T00:00:00Z"
+                },
+                "user_id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                }
+            }
+        },
         "entity.Task": {
             "type": "object",
             "properties": {
@@ -747,6 +1756,83 @@ const docTemplate = `{
                 }
             }
         },
+        "v1.CreateImportantDay": {
+            "type": "object",
+            "required": [
+                "event_day",
+                "event_month",
+                "title"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "example": "Buy flowers"
+                },
+                "event_day": {
+                    "type": "integer",
+                    "maximum": 31,
+                    "minimum": 1,
+                    "example": 13
+                },
+                "event_month": {
+                    "type": "integer",
+                    "maximum": 12,
+                    "minimum": 1,
+                    "example": 5
+                },
+                "event_year": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 1970
+                },
+                "person_name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "example": "Mom"
+                },
+                "relationship": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "example": "mother"
+                },
+                "reminder_rules": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/v1.ReminderRuleRequest"
+                    }
+                },
+                "reminder_time": {
+                    "type": "string",
+                    "example": "09:00"
+                },
+                "timezone": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "example": "Asia/Jakarta"
+                },
+                "title": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "example": "Mom birthday"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "birthday",
+                        "wedding",
+                        "memorial",
+                        "graduation",
+                        "first_day",
+                        "document",
+                        "subscription",
+                        "medical",
+                        "custom"
+                    ],
+                    "example": "birthday"
+                }
+            }
+        },
         "v1.CreateTask": {
             "type": "object",
             "required": [
@@ -774,6 +1860,21 @@ const docTemplate = `{
                 }
             }
         },
+        "v1.ImportantDayList": {
+            "type": "object",
+            "properties": {
+                "important_days": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entity.ImportantDay"
+                    }
+                },
+                "total": {
+                    "type": "integer",
+                    "example": 42
+                }
+            }
+        },
         "v1.Login": {
             "type": "object",
             "required": [
@@ -788,6 +1889,21 @@ const docTemplate = `{
                 "password": {
                     "type": "string",
                     "example": "secret123"
+                }
+            }
+        },
+        "v1.NotificationList": {
+            "type": "object",
+            "properties": {
+                "notifications": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entity.Notification"
+                    }
+                },
+                "total": {
+                    "type": "integer",
+                    "example": 42
                 }
             }
         },
@@ -813,6 +1929,67 @@ const docTemplate = `{
                     "maxLength": 255,
                     "minLength": 3,
                     "example": "johndoe"
+                }
+            }
+        },
+        "v1.RegisterDevice": {
+            "type": "object",
+            "required": [
+                "platform",
+                "token"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "example": "Pixel 8"
+                },
+                "platform": {
+                    "type": "string",
+                    "maxLength": 40,
+                    "example": "android"
+                },
+                "token": {
+                    "type": "string",
+                    "example": "ExpoPushToken[xxxxxxxxxxxxxxxxxxxxxx]"
+                }
+            }
+        },
+        "v1.ReminderRuleList": {
+            "type": "object",
+            "properties": {
+                "rules": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entity.ReminderRule"
+                    }
+                }
+            }
+        },
+        "v1.ReminderRuleRequest": {
+            "type": "object",
+            "properties": {
+                "channels": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entity.ReminderChannel"
+                    }
+                },
+                "offset_days": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "example": 7
+                }
+            }
+        },
+        "v1.ReplaceReminderRules": {
+            "type": "object",
+            "properties": {
+                "rules": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/v1.ReminderRuleRequest"
+                    }
                 }
             }
         },
@@ -883,6 +2060,92 @@ const docTemplate = `{
                 }
             }
         },
+        "v1.UpcomingImportantDayList": {
+            "type": "object",
+            "properties": {
+                "important_days": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entity.ImportantDayUpcoming"
+                    }
+                },
+                "total": {
+                    "type": "integer",
+                    "example": 42
+                }
+            }
+        },
+        "v1.UpdateImportantDay": {
+            "type": "object",
+            "required": [
+                "event_day",
+                "event_month",
+                "title"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "example": "Buy flowers"
+                },
+                "event_day": {
+                    "type": "integer",
+                    "maximum": 31,
+                    "minimum": 1,
+                    "example": 13
+                },
+                "event_month": {
+                    "type": "integer",
+                    "maximum": 12,
+                    "minimum": 1,
+                    "example": 5
+                },
+                "event_year": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 1970
+                },
+                "person_name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "example": "Mom"
+                },
+                "relationship": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "example": "mother"
+                },
+                "reminder_time": {
+                    "type": "string",
+                    "example": "09:00"
+                },
+                "timezone": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "example": "Asia/Jakarta"
+                },
+                "title": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "example": "Mom birthday"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "birthday",
+                        "wedding",
+                        "memorial",
+                        "graduation",
+                        "first_day",
+                        "document",
+                        "subscription",
+                        "medical",
+                        "custom"
+                    ],
+                    "example": "birthday"
+                }
+            }
+        },
         "v1.UpdateTask": {
             "type": "object",
             "required": [
@@ -917,8 +2180,8 @@ var SwaggerInfo = &swag.Spec{
 	Host:             "localhost:8080",
 	BasePath:         "/v1",
 	Schemes:          []string{},
-	Title:            "Go Clean Template API",
-	Description:      "Multi-domain clean architecture template with translation, user, and task management",
+	Title:            "Memora API",
+	Description:      "Backend API for Memora important days, reminders, notifications, devices, auth, and supporting template endpoints",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",
