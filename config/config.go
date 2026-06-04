@@ -20,7 +20,7 @@ type (
 		JWT     jwt
 		Metrics metrics
 		Swagger swagger
-		Resend  resend
+		Email   cloudflareEmail
 		Expo    expo
 		Worker  worker
 	}
@@ -83,10 +83,11 @@ type (
 		Enabled bool `env:"SWAGGER_ENABLED" envDefault:"false"`
 	}
 
-	// Resend -.
-	resend struct {
-		APIKey    string `env:"RESEND_API_KEY" envDefault:""`
-		FromEmail string `env:"RESEND_FROM_EMAIL" envDefault:""`
+	// Cloudflare Email Service -.
+	cloudflareEmail struct {
+		AccountID string `env:"CLOUDFLARE_EMAIL_ACCOUNT_ID" envDefault:""`
+		APIToken  string `env:"CLOUDFLARE_EMAIL_API_TOKEN"  envDefault:""`
+		FromEmail string `env:"CLOUDFLARE_EMAIL_FROM_EMAIL" envDefault:""`
 	}
 
 	// Expo -.

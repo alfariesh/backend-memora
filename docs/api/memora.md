@@ -456,12 +456,15 @@ make run-worker
 Relevant environment variables:
 
 ```env
-RESEND_API_KEY=
-RESEND_FROM_EMAIL=
+CLOUDFLARE_EMAIL_ACCOUNT_ID=
+CLOUDFLARE_EMAIL_API_TOKEN=
+CLOUDFLARE_EMAIL_FROM_EMAIL=
 EXPO_PUSH_ACCESS_TOKEN=
 REMINDER_WORKER_BATCH_SIZE=50
 REMINDER_WORKER_POLL_INTERVAL=1m
 ```
+
+Cloudflare Email Service settings are optional unless email reminders are enabled. `CLOUDFLARE_EMAIL_FROM_EMAIL` must use an onboarded sending domain in Cloudflare.
 
 `EXPO_PUSH_ACCESS_TOKEN` is optional unless Expo push security is enabled.
 

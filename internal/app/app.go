@@ -62,7 +62,7 @@ func initUseCases(cfg *config.Config, pg *postgres.Postgres, jwtManager *jwt.Man
 	reminderJobRepo := persistent.NewReminderJobRepo(pg)
 	notificationRepo := persistent.NewNotificationRepo(pg)
 	deviceTokenRepo := persistent.NewDeviceTokenRepo(pg)
-	emailSender := webapi.NewResendSender(cfg.Resend.APIKey, cfg.Resend.FromEmail)
+	emailSender := webapi.NewCloudflareEmailSender(cfg.Email.AccountID, cfg.Email.APIToken, cfg.Email.FromEmail)
 	pushSender := webapi.NewExpoPushSender(cfg.Expo.PushAccessToken)
 
 	return useCases{

@@ -53,7 +53,7 @@ func main() {
 		userSettingsRepo,
 		notificationRepo,
 		deviceTokenRepo,
-		webapi.NewResendSender(cfg.Resend.APIKey, cfg.Resend.FromEmail),
+		webapi.NewCloudflareEmailSender(cfg.Email.AccountID, cfg.Email.APIToken, cfg.Email.FromEmail),
 		webapi.NewExpoPushSender(cfg.Expo.PushAccessToken),
 	)
 
