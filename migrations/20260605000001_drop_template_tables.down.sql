@@ -1,0 +1,1 @@
+-- No-op. The history and tasks tables were template artifacts and are intentionally not restored.
