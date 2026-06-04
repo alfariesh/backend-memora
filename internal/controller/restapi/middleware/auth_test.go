@@ -84,7 +84,9 @@ func TestAuthMiddleware(t *testing.T) {
 			resp, err := app.Test(req)
 			require.NoError(t, err)
 
-			defer resp.Body.Close()
+			defer func() {
+				require.NoError(t, resp.Body.Close())
+			}()
 
 			assert.Equal(t, localTc.expectedStatus, resp.StatusCode)
 

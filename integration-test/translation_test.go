@@ -62,7 +62,7 @@ func TestHTTPDoTranslateV1(t *testing.T) {
 				t.Fatalf("Failed to send request: %v", err)
 			}
 
-			defer resp.Body.Close()
+			defer closeResponseBody(t, resp)
 
 			if resp.StatusCode != tt.expected {
 				t.Errorf("Expected status %d, got %d", tt.expected, resp.StatusCode)
@@ -91,7 +91,7 @@ func TestHTTPHistoryV1(t *testing.T) {
 		t.Fatalf("Failed to create translation: %v", err)
 	}
 
-	resp.Body.Close()
+	closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("Expected status %d for translation, got %d", http.StatusOK, resp.StatusCode)
@@ -108,7 +108,7 @@ func TestHTTPHistoryV1(t *testing.T) {
 		t.Fatalf("Failed to send request: %v", err)
 	}
 
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status %d, got %d", http.StatusOK, resp.StatusCode)

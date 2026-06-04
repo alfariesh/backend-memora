@@ -9,6 +9,11 @@ import (
 	"github.com/evrone/go-clean-template/internal/repo"
 )
 
+const (
+	defaultNotificationListLimit = 20
+	maxNotificationListLimit     = 100
+)
+
 // UseCase -.
 type UseCase struct {
 	repo repo.NotificationRepo
@@ -22,7 +27,11 @@ func New(r repo.NotificationRepo) *UseCase {
 // List -.
 func (uc *UseCase) List(ctx context.Context, userID string, unreadOnly bool, limit, offset int) ([]entity.Notification, int, error) {
 	if limit <= 0 {
-		limit = 20
+		limit = defaultNotificationListLimit
+	}
+
+	if limit > maxNotificationListLimit {
+		limit = maxNotificationListLimit
 	}
 
 	if offset < 0 {

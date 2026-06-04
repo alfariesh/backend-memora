@@ -20,6 +20,10 @@ func (c *ImportantDayController) CreateImportantDay(ctx context.Context, req *v1
 		return nil, status.Error(codes.Unauthenticated, "unauthorized")
 	}
 
+	if err := validateCreateImportantDayRequest(req); err != nil {
+		return nil, err
+	}
+
 	day, err := c.id.Create(ctx, userID, createImportantDayParams(req))
 	if err != nil {
 		return nil, importantDayError(c.l, err, "grpc - v1 - CreateImportantDay")
@@ -33,6 +37,10 @@ func (c *ImportantDayController) GetImportantDay(ctx context.Context, req *v1.Ge
 	userID, ok := grpcmw.UserIDFromContext(ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "unauthorized")
+	}
+
+	if err := validateRequiredID(req.GetId()); err != nil {
+		return nil, err
 	}
 
 	day, err := c.id.Get(ctx, userID, req.GetId())
@@ -94,6 +102,10 @@ func (c *ImportantDayController) UpdateImportantDay(ctx context.Context, req *v1
 		return nil, status.Error(codes.Unauthenticated, "unauthorized")
 	}
 
+	if err := validateUpdateImportantDayRequest(req); err != nil {
+		return nil, err
+	}
+
 	day, err := c.id.Update(ctx, userID, req.GetId(), updateImportantDayParams(req))
 	if err != nil {
 		return nil, importantDayError(c.l, err, "grpc - v1 - UpdateImportantDay")
@@ -109,6 +121,10 @@ func (c *ImportantDayController) ReplaceImportantDayReminders(ctx context.Contex
 		return nil, status.Error(codes.Unauthenticated, "unauthorized")
 	}
 
+	if err := validateReplaceReminderRulesRequest(req); err != nil {
+		return nil, err
+	}
+
 	rules, err := c.id.ReplaceReminderRules(ctx, userID, req.GetId(), reminderRuleParams(req.GetRules()))
 	if err != nil {
 		return nil, importantDayError(c.l, err, "grpc - v1 - ReplaceImportantDayReminders")
@@ -122,6 +138,10 @@ func (c *ImportantDayController) DeleteImportantDay(ctx context.Context, req *v1
 	userID, ok := grpcmw.UserIDFromContext(ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "unauthorized")
+	}
+
+	if err := validateRequiredID(req.GetId()); err != nil {
+		return nil, err
 	}
 
 	if err := c.id.Delete(ctx, userID, req.GetId()); err != nil {
@@ -153,6 +173,10 @@ func (c *NotificationController) MarkNotificationRead(ctx context.Context, req *
 	userID, ok := grpcmw.UserIDFromContext(ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "unauthorized")
+	}
+
+	if err := validateRequiredID(req.GetId()); err != nil {
+		return nil, err
 	}
 
 	notification, err := c.n.MarkRead(ctx, userID, req.GetId())
@@ -192,6 +216,10 @@ func (c *DeviceController) RegisterDevice(ctx context.Context, req *v1.RegisterD
 		return nil, status.Error(codes.Unauthenticated, "unauthorized")
 	}
 
+	if err := validateRegisterDeviceRequest(req); err != nil {
+		return nil, err
+	}
+
 	token, err := c.d.Register(ctx, userID, req.GetToken(), req.GetPlatform(), req.GetName())
 	if err != nil {
 		c.l.Error(err, "grpc - v1 - RegisterDevice")
@@ -211,6 +239,10 @@ func (c *DeviceController) DeleteDevice(ctx context.Context, req *v1.DeleteDevic
 	userID, ok := grpcmw.UserIDFromContext(ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "unauthorized")
+	}
+
+	if err := validateRequiredID(req.GetId()); err != nil {
+		return nil, err
 	}
 
 	if err := c.d.Delete(ctx, userID, req.GetId()); err != nil {
@@ -282,6 +314,167 @@ func intPointerFromInt32(value *int32) *int {
 	result := int(*value)
 
 	return &result
+}
+
+const (
+	maxImportantDayTitleLen        = 255
+	maxImportantDayPersonNameLen   = 255
+	maxImportantDayRelationshipLen = 100
+	maxImportantDayDescriptionLen  = 1000
+	maxImportantDayTimezoneLen     = 64
+	maxDevicePlatformLen           = 40
+	maxDeviceNameLen               = 255
+)
+
+func validateCreateImportantDayRequest(req *v1.CreateImportantDayRequest) error {
+	if req == nil {
+		return status.Error(codes.InvalidArgument, "request is required")
+	}
+
+	if err := validateImportantDayFields(
+		req.GetTitle(),
+		req.GetType(),
+		req.GetPersonName(),
+		req.GetRelationship(),
+		req.GetDescription(),
+		req.EventYear,
+		req.GetEventMonth(),
+		req.GetEventDay(),
+		req.GetTimezone(),
+		req.GetReminderTime(),
+	); err != nil {
+		return err
+	}
+
+	return validateReminderRuleRequests(req.GetReminderRules())
+}
+
+func validateUpdateImportantDayRequest(req *v1.UpdateImportantDayRequest) error {
+	if req == nil {
+		return status.Error(codes.InvalidArgument, "request is required")
+	}
+
+	if err := validateRequiredID(req.GetId()); err != nil {
+		return err
+	}
+
+	return validateImportantDayFields(
+		req.GetTitle(),
+		req.GetType(),
+		req.GetPersonName(),
+		req.GetRelationship(),
+		req.GetDescription(),
+		req.EventYear,
+		req.GetEventMonth(),
+		req.GetEventDay(),
+		req.GetTimezone(),
+		req.GetReminderTime(),
+	)
+}
+
+func validateImportantDayFields(
+	title string,
+	dayType string,
+	personName string,
+	relationship string,
+	description string,
+	eventYear *int32,
+	eventMonth int32,
+	eventDay int32,
+	timezone string,
+	reminderTime string,
+) error {
+	if title == "" {
+		return status.Error(codes.InvalidArgument, "title is required")
+	}
+
+	if len(title) > maxImportantDayTitleLen ||
+		len(personName) > maxImportantDayPersonNameLen ||
+		len(relationship) > maxImportantDayRelationshipLen ||
+		len(description) > maxImportantDayDescriptionLen ||
+		len(timezone) > maxImportantDayTimezoneLen {
+		return status.Error(codes.InvalidArgument, "request field exceeds maximum length")
+	}
+
+	if dayType != "" && !entity.ImportantDayType(dayType).Valid() {
+		return status.Error(codes.InvalidArgument, "invalid important day type")
+	}
+
+	if eventYear != nil && *eventYear < 1 {
+		return status.Error(codes.InvalidArgument, "invalid event year")
+	}
+
+	if eventMonth < 1 || eventMonth > 12 {
+		return status.Error(codes.InvalidArgument, "invalid event month")
+	}
+
+	if eventDay < 1 || eventDay > 31 {
+		return status.Error(codes.InvalidArgument, "invalid event day")
+	}
+
+	if reminderTime != "" {
+		if _, err := time.Parse("15:04", reminderTime); err != nil {
+			return status.Error(codes.InvalidArgument, "invalid reminder time")
+		}
+	}
+
+	return nil
+}
+
+func validateReplaceReminderRulesRequest(req *v1.ReplaceReminderRulesRequest) error {
+	if req == nil {
+		return status.Error(codes.InvalidArgument, "request is required")
+	}
+
+	if err := validateRequiredID(req.GetId()); err != nil {
+		return err
+	}
+
+	return validateReminderRuleRequests(req.GetRules())
+}
+
+func validateReminderRuleRequests(rules []*v1.ReminderRuleRequest) error {
+	for _, rule := range rules {
+		if rule.GetOffsetDays() < 0 {
+			return status.Error(codes.InvalidArgument, "invalid reminder offset")
+		}
+
+		for _, channel := range rule.GetChannels() {
+			if !entity.ReminderChannel(channel).Valid() {
+				return status.Error(codes.InvalidArgument, "invalid reminder channel")
+			}
+		}
+	}
+
+	return nil
+}
+
+func validateRegisterDeviceRequest(req *v1.RegisterDeviceRequest) error {
+	if req == nil {
+		return status.Error(codes.InvalidArgument, "request is required")
+	}
+
+	if req.GetToken() == "" {
+		return status.Error(codes.InvalidArgument, "token is required")
+	}
+
+	if req.GetPlatform() == "" {
+		return status.Error(codes.InvalidArgument, "platform is required")
+	}
+
+	if len(req.GetPlatform()) > maxDevicePlatformLen || len(req.GetName()) > maxDeviceNameLen {
+		return status.Error(codes.InvalidArgument, "request field exceeds maximum length")
+	}
+
+	return nil
+}
+
+func validateRequiredID(id string) error {
+	if id == "" {
+		return status.Error(codes.InvalidArgument, "id is required")
+	}
+
+	return nil
 }
 
 func importantDayError(l interface {

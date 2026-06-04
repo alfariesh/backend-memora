@@ -81,6 +81,14 @@ func doAuthenticatedRequest(ctx context.Context, method, url string, body io.Rea
 	return http.DefaultClient.Do(req)
 }
 
+func closeResponseBody(t *testing.T, resp *http.Response) {
+	t.Helper()
+
+	if err := resp.Body.Close(); err != nil {
+		t.Fatalf("close response body: %v", err)
+	}
+}
+
 // registerUser registers a new user via the HTTP REST API.
 func registerUser(t *testing.T, username, email, password string) *http.Response {
 	t.Helper()
@@ -112,7 +120,7 @@ func loginUser(t *testing.T, email, password string) string {
 		t.Fatalf("loginUser: failed to send request: %v", err)
 	}
 
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("loginUser: expected status %d, got %d", http.StatusOK, resp.StatusCode)
@@ -158,7 +166,7 @@ func registerAndLogin(t *testing.T) string {
 	password := testPassword
 
 	resp := registerUser(t, name, email, password)
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusCreated {
 		t.Fatalf("registerAndLogin: register expected 201, got %d", resp.StatusCode)
@@ -334,7 +342,7 @@ func parseJSON[T any](t *testing.T, resp *http.Response) T {
 	return result
 }
 
-func getHealthCheck(url string) (int, error) {
+func getHealthCheck(url string) (statusCode int, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
 
 	defer cancel()
@@ -344,7 +352,11 @@ func getHealthCheck(url string) (int, error) {
 		return -1, err
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("close health response body: %w", closeErr)
+		}
+	}()
 
 	return resp.StatusCode, nil
 }

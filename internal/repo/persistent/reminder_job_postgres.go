@@ -64,60 +64,15 @@ func (r *ReminderJobRepo) Store(ctx context.Context, job *entity.ReminderJob) er
 }
 
 // ReplacePendingForImportantDay -.
-func (r *ReminderJobRepo) ReplacePendingForImportantDay(ctx context.Context, userID, importantDayID string, jobs []entity.ReminderJob) error {
+func (r *ReminderJobRepo) ReplacePendingForImportantDay(ctx context.Context, userID, importantDayID string, jobs []entity.ReminderJob) (err error) {
 	tx, err := r.Pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("ReminderJobRepo - ReplacePendingForImportantDay - Begin: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer rollbackTx(ctx, tx, &err, "ReminderJobRepo - ReplacePendingForImportantDay - Rollback")
 
-	sql, args, err := r.Builder.
-		Delete("reminder_jobs").
-		Where(sq.Eq{"user_id": userID, "important_day_id": importantDayID, "status": entity.ReminderJobStatusPending}).
-		ToSql()
-	if err != nil {
-		return fmt.Errorf("ReminderJobRepo - ReplacePendingForImportantDay - delete builder: %w", err)
-	}
-
-	if _, err = tx.Exec(ctx, sql, args...); err != nil {
-		return fmt.Errorf("ReminderJobRepo - ReplacePendingForImportantDay - delete: %w", err)
-	}
-
-	for _, job := range jobs {
-		channels, marshalErr := marshalChannels(job.Channels)
-		if marshalErr != nil {
-			return fmt.Errorf("ReminderJobRepo - ReplacePendingForImportantDay - marshal: %w", marshalErr)
-		}
-
-		sql, args, err = r.Builder.
-			Insert("reminder_jobs").
-			Columns("id, user_id, important_day_id, reminder_rule_id, occurrence_date, offset_days, channels, scheduled_at, status, attempts, last_error, locked_until, sent_at, created_at, updated_at").
-			Values(
-				job.ID,
-				job.UserID,
-				job.ImportantDayID,
-				job.ReminderRuleID,
-				job.OccurrenceDate,
-				job.OffsetDays,
-				channels,
-				job.ScheduledAt,
-				job.Status,
-				job.Attempts,
-				job.LastError,
-				job.LockedUntil,
-				job.SentAt,
-				job.CreatedAt,
-				job.UpdatedAt,
-			).
-			Suffix("ON CONFLICT (important_day_id, occurrence_date, offset_days) DO UPDATE SET channels = EXCLUDED.channels, scheduled_at = EXCLUDED.scheduled_at, status = EXCLUDED.status, attempts = 0, last_error = '', locked_until = NULL, sent_at = NULL, updated_at = EXCLUDED.updated_at").
-			ToSql()
-		if err != nil {
-			return fmt.Errorf("ReminderJobRepo - ReplacePendingForImportantDay - insert builder: %w", err)
-		}
-
-		if _, err = tx.Exec(ctx, sql, args...); err != nil {
-			return fmt.Errorf("ReminderJobRepo - ReplacePendingForImportantDay - insert: %w", err)
-		}
+	if err = replacePendingReminderJobsTx(ctx, r.Builder, tx, userID, importantDayID, jobs); err != nil {
+		return fmt.Errorf("ReminderJobRepo - ReplacePendingForImportantDay - replacePendingReminderJobsTx: %w", err)
 	}
 
 	if err = tx.Commit(ctx); err != nil {

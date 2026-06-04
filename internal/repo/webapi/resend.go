@@ -3,11 +3,11 @@ package webapi
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/evrone/go-clean-template/internal/entity"
 	"github.com/goccy/go-json"
 )
 
@@ -32,9 +32,9 @@ func NewResendSender(apiKey, fromEmail string) *ResendSender {
 }
 
 // Send -.
-func (s *ResendSender) Send(ctx context.Context, to, subject, html string) (string, error) {
+func (s *ResendSender) Send(ctx context.Context, to, subject, html string) (messageID string, err error) {
 	if s.apiKey == "" || s.fromEmail == "" {
-		return "", errors.New("resend sender is not configured")
+		return "", entity.ErrEmailSenderNotConfigured
 	}
 
 	payload := map[string]any{
@@ -61,7 +61,11 @@ func (s *ResendSender) Send(ctx context.Context, to, subject, html string) (stri
 	if err != nil {
 		return "", fmt.Errorf("ResendSender - Send - s.client.Do: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("ResendSender - Send - resp.Body.Close: %w", closeErr)
+		}
+	}()
 
 	var response struct {
 		ID    string `json:"id"`

@@ -90,27 +90,28 @@ func (uc *UseCase) deliverJob(ctx context.Context, job entity.ReminderJob, now t
 	}
 
 	failures := make([]string, 0)
+	delivered := false
 
 	if hasChannel(channels, entity.ReminderChannelEmail) {
-		if _, err = uc.emailSender.Send(ctx, user.Email, title, reminderHTML(user, day, job, body)); err != nil {
-			failures = append(failures, "email: "+err.Error())
-		}
-	}
-
-	if hasChannel(channels, entity.ReminderChannelPush) {
-		if err = uc.sendPush(ctx, job, title, body); err != nil {
-			failures = append(failures, "push: "+err.Error())
-		}
-	}
-
-	if len(failures) > 0 {
-		return errors.New(strings.Join(failures, "; "))
+		ok, failure := uc.deliverEmail(ctx, user, day, job, title, body)
+		delivered = delivered || ok
+		failures = appendFailure(failures, failure)
 	}
 
 	if hasChannel(channels, entity.ReminderChannelInApp) {
-		if err = uc.storeNotification(ctx, job, title, body, now); err != nil {
-			return fmt.Errorf("in_app: %w", err)
-		}
+		ok, failure := uc.deliverInApp(ctx, job, title, body, now)
+		delivered = delivered || ok
+		failures = appendFailure(failures, failure)
+	}
+
+	if hasChannel(channels, entity.ReminderChannelPush) {
+		ok, failure := uc.deliverPush(ctx, job, title, body)
+		delivered = delivered || ok
+		failures = appendFailure(failures, failure)
+	}
+
+	if len(failures) > 0 && !delivered {
+		return errors.New(strings.Join(failures, "; "))
 	}
 
 	if err = uc.jobRepo.MarkSent(ctx, job.ID, now); err != nil {
@@ -122,6 +123,42 @@ func (uc *UseCase) deliverJob(ctx context.Context, job entity.ReminderJob, now t
 	}
 
 	return nil
+}
+
+func (uc *UseCase) deliverEmail(ctx context.Context, user entity.User, day entity.ImportantDay, job entity.ReminderJob, title, body string) (bool, string) {
+	if uc.emailSender == nil {
+		return false, ""
+	}
+
+	if _, err := uc.emailSender.Send(ctx, user.Email, title, reminderHTML(user, day, job, body)); err != nil {
+		if errors.Is(err, entity.ErrEmailSenderNotConfigured) {
+			return false, ""
+		}
+
+		return false, "email: " + err.Error()
+	}
+
+	return true, ""
+}
+
+func (uc *UseCase) deliverInApp(ctx context.Context, job entity.ReminderJob, title, body string, now time.Time) (bool, string) {
+	if err := uc.storeNotification(ctx, job, title, body, now); err != nil {
+		return false, "in_app: " + err.Error()
+	}
+
+	return true, ""
+}
+
+func (uc *UseCase) deliverPush(ctx context.Context, job entity.ReminderJob, title, body string) (bool, string) {
+	if uc.pushSender == nil {
+		return false, "push: " + entity.ErrPushSenderNotConfigured.Error()
+	}
+
+	if err := uc.sendPush(ctx, job, title, body); err != nil {
+		return false, "push: " + err.Error()
+	}
+
+	return true, ""
 }
 
 func (uc *UseCase) enabledChannels(ctx context.Context, job entity.ReminderJob) ([]entity.ReminderChannel, error) {
@@ -178,6 +215,14 @@ func (uc *UseCase) sendPush(ctx context.Context, job entity.ReminderJob, title, 
 	}
 
 	return nil
+}
+
+func appendFailure(failures []string, failure string) []string {
+	if failure == "" {
+		return failures
+	}
+
+	return append(failures, failure)
 }
 
 func (uc *UseCase) storeNotification(ctx context.Context, job entity.ReminderJob, title, body string, now time.Time) error {

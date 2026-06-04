@@ -12,12 +12,25 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	defaultListLimit         = 10
+	maxListLimit             = 100
+	defaultUpcomingDays      = 365
+	maxUpcomingLookaheadDays = 3660
+)
+
 // UseCase -.
 type UseCase struct {
 	dayRepo      repo.ImportantDayRepo
 	ruleRepo     repo.ReminderRuleRepo
 	jobRepo      repo.ReminderJobRepo
 	settingsRepo repo.UserSettingsRepo
+}
+
+type atomicImportantDayRepo interface {
+	StoreWithReminderRulesAndJobs(ctx context.Context, day *entity.ImportantDay, rules []entity.ReminderRule, jobs []entity.ReminderJob) error
+	UpdateWithReminderJobs(ctx context.Context, day *entity.ImportantDay, jobs []entity.ReminderJob) error
+	ReplaceReminderRulesAndJobs(ctx context.Context, userID, importantDayID string, rules []entity.ReminderRule, jobs []entity.ReminderJob) error
 }
 
 // New -.
@@ -62,19 +75,32 @@ func (uc *UseCase) Create(ctx context.Context, userID string, params entity.Impo
 		UpdatedAt:    now,
 	}
 
+	rules := buildReminderRules(userID, day.ID, entity.NormalizeReminderRulesWithChannels(params.ReminderRules, settings.NotificationChannels), now)
+	jobs, err := buildReminderJobs(day, rules, now)
+	if err != nil {
+		return entity.ImportantDay{}, fmt.Errorf("ImportantDayUseCase - Create - buildReminderJobs: %w", err)
+	}
+
+	if atomicRepo, ok := uc.dayRepo.(atomicImportantDayRepo); ok {
+		if err = atomicRepo.StoreWithReminderRulesAndJobs(ctx, &day, rules, jobs); err != nil {
+			return entity.ImportantDay{}, fmt.Errorf("ImportantDayUseCase - Create - atomicRepo.StoreWithReminderRulesAndJobs: %w", err)
+		}
+
+		return day, nil
+	}
+
 	if err := uc.dayRepo.Store(ctx, &day); err != nil {
 		return entity.ImportantDay{}, fmt.Errorf("ImportantDayUseCase - Create - uc.dayRepo.Store: %w", err)
 	}
 
-	rules := buildReminderRules(userID, day.ID, entity.NormalizeReminderRulesWithChannels(params.ReminderRules, settings.NotificationChannels), now)
 	if err := uc.ruleRepo.ReplaceForImportantDay(ctx, userID, day.ID, rules); err != nil {
 		_ = uc.dayRepo.Delete(ctx, userID, day.ID)
 
 		return entity.ImportantDay{}, fmt.Errorf("ImportantDayUseCase - Create - uc.ruleRepo.ReplaceForImportantDay: %w", err)
 	}
 
-	if err := uc.scheduleJobs(ctx, day, rules, now); err != nil {
-		return entity.ImportantDay{}, fmt.Errorf("ImportantDayUseCase - Create - uc.scheduleJobs: %w", err)
+	if err := uc.jobRepo.ReplacePendingForImportantDay(ctx, day.UserID, day.ID, jobs); err != nil {
+		return entity.ImportantDay{}, fmt.Errorf("ImportantDayUseCase - Create - uc.jobRepo.ReplacePendingForImportantDay: %w", err)
 	}
 
 	return day, nil
@@ -92,13 +118,7 @@ func (uc *UseCase) Get(ctx context.Context, userID, id string) (entity.Important
 
 // List -.
 func (uc *UseCase) List(ctx context.Context, userID string, dayType *entity.ImportantDayType, limit, offset int) ([]entity.ImportantDay, int, error) {
-	if limit <= 0 {
-		limit = 10
-	}
-
-	if offset < 0 {
-		offset = 0
-	}
+	limit, offset = normalizeListPagination(limit, offset)
 
 	days, total, err := uc.dayRepo.List(ctx, userID, repo.ImportantDayFilter{
 		Type:   dayType,
@@ -114,17 +134,8 @@ func (uc *UseCase) List(ctx context.Context, userID string, dayType *entity.Impo
 
 // Upcoming -.
 func (uc *UseCase) Upcoming(ctx context.Context, userID string, from time.Time, days, limit, offset int) ([]entity.ImportantDayUpcoming, int, error) {
-	if days <= 0 {
-		days = 365
-	}
-
-	if limit <= 0 {
-		limit = 10
-	}
-
-	if offset < 0 {
-		offset = 0
-	}
+	days = normalizeUpcomingDays(days)
+	limit, offset = normalizeListPagination(limit, offset)
 
 	allDays, _, err := uc.dayRepo.List(ctx, userID, repo.ImportantDayFilter{
 		Limit:  1000,
@@ -203,18 +214,34 @@ func (uc *UseCase) Update(ctx context.Context, userID, id string, params entity.
 	day.ReminderTime = params.ReminderTime
 	day.UpdatedAt = time.Now().UTC()
 
-	if err = uc.dayRepo.Update(ctx, &day); err != nil {
-		return entity.ImportantDay{}, fmt.Errorf("ImportantDayUseCase - Update - uc.dayRepo.Update: %w", err)
-	}
-
 	rules, err := uc.ruleRepo.GetForImportantDay(ctx, userID, id)
 	if err != nil {
 		return entity.ImportantDay{}, fmt.Errorf("ImportantDayUseCase - Update - uc.ruleRepo.GetForImportantDay: %w", err)
 	}
 
+	var jobs []entity.ReminderJob
 	if len(rules) > 0 {
-		if err = uc.scheduleJobs(ctx, day, rules, time.Now().UTC()); err != nil {
-			return entity.ImportantDay{}, fmt.Errorf("ImportantDayUseCase - Update - uc.scheduleJobs: %w", err)
+		jobs, err = buildReminderJobs(day, rules, time.Now().UTC())
+		if err != nil {
+			return entity.ImportantDay{}, fmt.Errorf("ImportantDayUseCase - Update - buildReminderJobs: %w", err)
+		}
+	}
+
+	if atomicRepo, ok := uc.dayRepo.(atomicImportantDayRepo); ok {
+		if err = atomicRepo.UpdateWithReminderJobs(ctx, &day, jobs); err != nil {
+			return entity.ImportantDay{}, fmt.Errorf("ImportantDayUseCase - Update - atomicRepo.UpdateWithReminderJobs: %w", err)
+		}
+
+		return day, nil
+	}
+
+	if err = uc.dayRepo.Update(ctx, &day); err != nil {
+		return entity.ImportantDay{}, fmt.Errorf("ImportantDayUseCase - Update - uc.dayRepo.Update: %w", err)
+	}
+
+	if len(jobs) > 0 {
+		if err = uc.jobRepo.ReplacePendingForImportantDay(ctx, day.UserID, day.ID, jobs); err != nil {
+			return entity.ImportantDay{}, fmt.Errorf("ImportantDayUseCase - Update - uc.jobRepo.ReplacePendingForImportantDay: %w", err)
 		}
 	}
 
@@ -259,29 +286,41 @@ func (uc *UseCase) ReplaceReminderRules(ctx context.Context, userID, id string, 
 
 	now := time.Now().UTC()
 	rules := buildReminderRules(userID, id, entity.NormalizeReminderRulesWithChannels(params, settings.NotificationChannels), now)
+	jobs, err := buildReminderJobs(day, rules, now)
+	if err != nil {
+		return nil, fmt.Errorf("ImportantDayUseCase - ReplaceReminderRules - buildReminderJobs: %w", err)
+	}
+
+	if atomicRepo, ok := uc.dayRepo.(atomicImportantDayRepo); ok {
+		if err = atomicRepo.ReplaceReminderRulesAndJobs(ctx, userID, id, rules, jobs); err != nil {
+			return nil, fmt.Errorf("ImportantDayUseCase - ReplaceReminderRules - atomicRepo.ReplaceReminderRulesAndJobs: %w", err)
+		}
+
+		return rules, nil
+	}
 
 	if err = uc.ruleRepo.ReplaceForImportantDay(ctx, userID, id, rules); err != nil {
 		return nil, fmt.Errorf("ImportantDayUseCase - ReplaceReminderRules - uc.ruleRepo.ReplaceForImportantDay: %w", err)
 	}
 
-	if err = uc.scheduleJobs(ctx, day, rules, now); err != nil {
-		return nil, fmt.Errorf("ImportantDayUseCase - ReplaceReminderRules - uc.scheduleJobs: %w", err)
+	if err = uc.jobRepo.ReplacePendingForImportantDay(ctx, day.UserID, day.ID, jobs); err != nil {
+		return nil, fmt.Errorf("ImportantDayUseCase - ReplaceReminderRules - uc.jobRepo.ReplacePendingForImportantDay: %w", err)
 	}
 
 	return rules, nil
 }
 
-func (uc *UseCase) scheduleJobs(ctx context.Context, day entity.ImportantDay, rules []entity.ReminderRule, now time.Time) error {
+func buildReminderJobs(day entity.ImportantDay, rules []entity.ReminderRule, now time.Time) ([]entity.ReminderJob, error) {
 	occurrence, err := day.NextOccurrence(now)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	jobs := make([]entity.ReminderJob, 0, len(rules))
 	for _, rule := range rules {
 		scheduledAt, scheduleErr := day.ReminderScheduledAt(occurrence, rule.OffsetDays)
 		if scheduleErr != nil {
-			return scheduleErr
+			return nil, scheduleErr
 		}
 
 		if scheduledAt.Before(now) {
@@ -304,7 +343,7 @@ func (uc *UseCase) scheduleJobs(ctx context.Context, day entity.ImportantDay, ru
 		})
 	}
 
-	return uc.jobRepo.ReplacePendingForImportantDay(ctx, day.UserID, day.ID, jobs)
+	return jobs, nil
 }
 
 func (uc *UseCase) settings(ctx context.Context, userID string) (entity.UserSettings, error) {
@@ -333,6 +372,34 @@ func applySettingsDefaults(params *entity.ImportantDayParams, settings entity.Us
 	if params.ReminderTime == "" {
 		params.ReminderTime = settings.ReminderTime
 	}
+}
+
+func normalizeListPagination(limit, offset int) (int, int) {
+	if limit <= 0 {
+		limit = defaultListLimit
+	}
+
+	if limit > maxListLimit {
+		limit = maxListLimit
+	}
+
+	if offset < 0 {
+		offset = 0
+	}
+
+	return limit, offset
+}
+
+func normalizeUpcomingDays(days int) int {
+	if days <= 0 {
+		return defaultUpcomingDays
+	}
+
+	if days > maxUpcomingLookaheadDays {
+		return maxUpcomingLookaheadDays
+	}
+
+	return days
 }
 
 func buildReminderRules(userID, importantDayID string, params []entity.ReminderRuleParams, now time.Time) []entity.ReminderRule {

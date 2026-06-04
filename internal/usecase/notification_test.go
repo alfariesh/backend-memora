@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/evrone/go-clean-template/internal/entity"
+	"github.com/evrone/go-clean-template/internal/repo"
 	"github.com/evrone/go-clean-template/internal/usecase/notification"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -19,6 +21,25 @@ func newNotificationUseCase(t *testing.T) (*notification.UseCase, *MockNotificat
 	useCase := notification.New(repo)
 
 	return useCase, repo
+}
+
+func TestNotificationListCapsLimitAndNormalizesOffset(t *testing.T) {
+	t.Parallel()
+
+	uc, notificationRepo := newNotificationUseCase(t)
+	notificationRepo.EXPECT().
+		List(context.Background(), "user-id-123", repo.NotificationFilter{
+			UnreadOnly: true,
+			Limit:      100,
+			Offset:     0,
+		}).
+		Return([]entity.Notification{}, 0, nil)
+
+	notifications, total, err := uc.List(context.Background(), "user-id-123", true, 1000, -1)
+
+	require.NoError(t, err)
+	assert.Empty(t, notifications)
+	assert.Zero(t, total)
 }
 
 func TestNotificationCountUnread(t *testing.T) {

@@ -31,7 +31,7 @@ func NewExpoPushSender(accessToken string) *ExpoPushSender {
 }
 
 // Send -.
-func (s *ExpoPushSender) Send(ctx context.Context, token, title, body string, data map[string]string) (string, error) {
+func (s *ExpoPushSender) Send(ctx context.Context, token, title, body string, data map[string]string) (ticketID string, err error) {
 	if token == "" {
 		return "", errors.New("expo push token is required")
 	}
@@ -63,7 +63,11 @@ func (s *ExpoPushSender) Send(ctx context.Context, token, title, body string, da
 	if err != nil {
 		return "", fmt.Errorf("ExpoPushSender - Send - s.client.Do: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("ExpoPushSender - Send - resp.Body.Close: %w", closeErr)
+		}
+	}()
 
 	var response struct {
 		Data   json.RawMessage `json:"data"`

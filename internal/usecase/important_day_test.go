@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/evrone/go-clean-template/internal/entity"
+	"github.com/evrone/go-clean-template/internal/repo"
 	"github.com/evrone/go-clean-template/internal/usecase/importantday"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -23,6 +24,24 @@ func newImportantDayUseCase(t *testing.T) (*importantday.UseCase, *MockImportant
 	useCase := importantday.New(dayRepo, ruleRepo, jobRepo, settingsRepo)
 
 	return useCase, dayRepo, ruleRepo, jobRepo, settingsRepo
+}
+
+func TestImportantDayListCapsLimitAndNormalizesOffset(t *testing.T) {
+	t.Parallel()
+
+	uc, dayRepo, _, _, _ := newImportantDayUseCase(t)
+	dayRepo.EXPECT().
+		List(context.Background(), "user-id-123", repo.ImportantDayFilter{
+			Limit:  100,
+			Offset: 0,
+		}).
+		Return([]entity.ImportantDay{}, 0, nil)
+
+	days, total, err := uc.List(context.Background(), "user-id-123", nil, 1000, -1)
+
+	require.NoError(t, err)
+	assert.Empty(t, days)
+	assert.Zero(t, total)
 }
 
 func TestImportantDayGetReminderRules(t *testing.T) {

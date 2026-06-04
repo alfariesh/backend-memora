@@ -22,7 +22,7 @@ func TestHTTPRegisterV1(t *testing.T) {
 	dupUser := name + "_dup"
 
 	resp := registerUser(t, dupUser, dupEmail, testPassword)
-	resp.Body.Close()
+	closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusCreated {
 		t.Fatalf("pre-register: expected 201, got %d", resp.StatusCode)
@@ -68,7 +68,7 @@ func TestHTTPRegisterV1(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.description, func(t *testing.T) {
 			resp := registerUser(t, tt.username, tt.email, tt.password)
-			defer resp.Body.Close()
+			defer closeResponseBody(t, resp)
 
 			if resp.StatusCode != tt.expected {
 				t.Errorf("Expected status %d, got %d", tt.expected, resp.StatusCode)
@@ -85,7 +85,7 @@ func TestHTTPLoginV1(t *testing.T) {
 
 	// Register a user first.
 	resp := registerUser(t, name, email, password)
-	resp.Body.Close()
+	closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusCreated {
 		t.Fatalf("pre-register: expected 201, got %d", resp.StatusCode)
@@ -125,7 +125,7 @@ func TestHTTPLoginV1(t *testing.T) {
 				t.Fatalf("Failed to send request: %v", err)
 			}
 
-			defer resp.Body.Close()
+			defer closeResponseBody(t, resp)
 
 			if resp.StatusCode != tt.expected {
 				t.Errorf("Expected status %d, got %d", tt.expected, resp.StatusCode)
@@ -170,7 +170,7 @@ func TestHTTPRefreshLogoutV1(t *testing.T) {
 	password := testPassword
 
 	resp := registerUser(t, name, email, password)
-	resp.Body.Close()
+	closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusCreated {
 		t.Fatalf("pre-register: expected 201, got %d", resp.StatusCode)
@@ -186,7 +186,7 @@ func TestHTTPRefreshLogoutV1(t *testing.T) {
 	}
 
 	if loginResp.StatusCode != http.StatusOK {
-		loginResp.Body.Close()
+		closeResponseBody(t, loginResp)
 		t.Fatalf("login: expected status %d, got %d", http.StatusOK, loginResp.StatusCode)
 	}
 
@@ -194,7 +194,7 @@ func TestHTTPRefreshLogoutV1(t *testing.T) {
 		AccessToken  string `json:"access_token"`
 		RefreshToken string `json:"refresh_token"`
 	}](t, loginResp)
-	loginResp.Body.Close()
+	closeResponseBody(t, loginResp)
 
 	if loginResult.AccessToken == "" {
 		t.Fatal("Expected non-empty access token")
@@ -211,7 +211,7 @@ func TestHTTPRefreshLogoutV1(t *testing.T) {
 	}
 
 	if refreshResp.StatusCode != http.StatusOK {
-		refreshResp.Body.Close()
+		closeResponseBody(t, refreshResp)
 		t.Fatalf("refresh: expected status %d, got %d", http.StatusOK, refreshResp.StatusCode)
 	}
 
@@ -220,7 +220,7 @@ func TestHTTPRefreshLogoutV1(t *testing.T) {
 		AccessToken  string `json:"access_token"`
 		RefreshToken string `json:"refresh_token"`
 	}](t, refreshResp)
-	refreshResp.Body.Close()
+	closeResponseBody(t, refreshResp)
 
 	if refreshResult.Token == "" || refreshResult.AccessToken == "" {
 		t.Fatal("Expected refreshed access token")
@@ -243,7 +243,7 @@ func TestHTTPRefreshLogoutV1(t *testing.T) {
 		t.Fatalf("old refresh: failed to send request: %v", err)
 	}
 
-	oldRefreshResp.Body.Close()
+	closeResponseBody(t, oldRefreshResp)
 
 	if oldRefreshResp.StatusCode != http.StatusUnauthorized {
 		t.Fatalf("old refresh: expected status %d, got %d", http.StatusUnauthorized, oldRefreshResp.StatusCode)
@@ -254,7 +254,7 @@ func TestHTTPRefreshLogoutV1(t *testing.T) {
 		t.Fatalf("profile with refreshed token: failed to send request: %v", err)
 	}
 
-	profileResp.Body.Close()
+	closeResponseBody(t, profileResp)
 
 	if profileResp.StatusCode != http.StatusOK {
 		t.Fatalf("profile with refreshed token: expected status %d, got %d", http.StatusOK, profileResp.StatusCode)
@@ -266,7 +266,7 @@ func TestHTTPRefreshLogoutV1(t *testing.T) {
 		t.Fatalf("logout: failed to send request: %v", err)
 	}
 
-	logoutResp.Body.Close()
+	closeResponseBody(t, logoutResp)
 
 	if logoutResp.StatusCode != http.StatusNoContent {
 		t.Fatalf("logout: expected status %d, got %d", http.StatusNoContent, logoutResp.StatusCode)
@@ -277,7 +277,7 @@ func TestHTTPRefreshLogoutV1(t *testing.T) {
 		t.Fatalf("refresh after logout: failed to send request: %v", err)
 	}
 
-	afterLogoutResp.Body.Close()
+	closeResponseBody(t, afterLogoutResp)
 
 	if afterLogoutResp.StatusCode != http.StatusUnauthorized {
 		t.Fatalf("refresh after logout: expected status %d, got %d", http.StatusUnauthorized, afterLogoutResp.StatusCode)
@@ -297,7 +297,7 @@ func TestHTTPProfileV1(t *testing.T) {
 			t.Fatalf("Failed to send request: %v", err)
 		}
 
-		defer resp.Body.Close()
+		defer closeResponseBody(t, resp)
 
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("Expected status %d, got %d", http.StatusOK, resp.StatusCode)
@@ -326,7 +326,7 @@ func TestHTTPProfileV1(t *testing.T) {
 			t.Fatalf("Failed to send request: %v", err)
 		}
 
-		defer resp.Body.Close()
+		defer closeResponseBody(t, resp)
 
 		if resp.StatusCode != http.StatusUnauthorized {
 			t.Errorf("Expected status %d, got %d", http.StatusUnauthorized, resp.StatusCode)

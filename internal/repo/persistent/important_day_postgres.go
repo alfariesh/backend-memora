@@ -206,6 +206,242 @@ func (r *ImportantDayRepo) Delete(ctx context.Context, userID, id string) error 
 	return nil
 }
 
+// StoreWithReminderRulesAndJobs stores an important day, reminder rules, and reminder jobs atomically.
+func (r *ImportantDayRepo) StoreWithReminderRulesAndJobs(ctx context.Context, day *entity.ImportantDay, rules []entity.ReminderRule, jobs []entity.ReminderJob) (err error) {
+	tx, err := r.Pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("ImportantDayRepo - StoreWithReminderRulesAndJobs - Begin: %w", err)
+	}
+	defer rollbackTx(ctx, tx, &err, "ImportantDayRepo - StoreWithReminderRulesAndJobs - Rollback")
+
+	if err = r.storeImportantDayTx(ctx, tx, day); err != nil {
+		return err
+	}
+
+	if err = replaceReminderRulesTx(ctx, r.Builder, tx, day.UserID, day.ID, rules); err != nil {
+		return err
+	}
+
+	if err = replacePendingReminderJobsTx(ctx, r.Builder, tx, day.UserID, day.ID, jobs); err != nil {
+		return err
+	}
+
+	if err = tx.Commit(ctx); err != nil {
+		return fmt.Errorf("ImportantDayRepo - StoreWithReminderRulesAndJobs - Commit: %w", err)
+	}
+
+	return nil
+}
+
+// UpdateWithReminderJobs updates an important day and replaces its pending reminder jobs atomically.
+func (r *ImportantDayRepo) UpdateWithReminderJobs(ctx context.Context, day *entity.ImportantDay, jobs []entity.ReminderJob) (err error) {
+	tx, err := r.Pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("ImportantDayRepo - UpdateWithReminderJobs - Begin: %w", err)
+	}
+	defer rollbackTx(ctx, tx, &err, "ImportantDayRepo - UpdateWithReminderJobs - Rollback")
+
+	if err = r.updateImportantDayTx(ctx, tx, day); err != nil {
+		return err
+	}
+
+	if err = replacePendingReminderJobsTx(ctx, r.Builder, tx, day.UserID, day.ID, jobs); err != nil {
+		return err
+	}
+
+	if err = tx.Commit(ctx); err != nil {
+		return fmt.Errorf("ImportantDayRepo - UpdateWithReminderJobs - Commit: %w", err)
+	}
+
+	return nil
+}
+
+// ReplaceReminderRulesAndJobs replaces reminder rules and pending reminder jobs atomically.
+func (r *ImportantDayRepo) ReplaceReminderRulesAndJobs(ctx context.Context, userID, importantDayID string, rules []entity.ReminderRule, jobs []entity.ReminderJob) (err error) {
+	tx, err := r.Pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("ImportantDayRepo - ReplaceReminderRulesAndJobs - Begin: %w", err)
+	}
+	defer rollbackTx(ctx, tx, &err, "ImportantDayRepo - ReplaceReminderRulesAndJobs - Rollback")
+
+	if err = replaceReminderRulesTx(ctx, r.Builder, tx, userID, importantDayID, rules); err != nil {
+		return err
+	}
+
+	if err = replacePendingReminderJobsTx(ctx, r.Builder, tx, userID, importantDayID, jobs); err != nil {
+		return err
+	}
+
+	if err = tx.Commit(ctx); err != nil {
+		return fmt.Errorf("ImportantDayRepo - ReplaceReminderRulesAndJobs - Commit: %w", err)
+	}
+
+	return nil
+}
+
+func (r *ImportantDayRepo) storeImportantDayTx(ctx context.Context, tx pgx.Tx, day *entity.ImportantDay) error {
+	sql, args, err := r.Builder.
+		Insert("important_days").
+		Columns(
+			"id, user_id, title, type, person_name, relationship, description, event_year, event_month, event_day, recurrence, timezone, reminder_time, created_at, updated_at",
+		).
+		Values(
+			day.ID,
+			day.UserID,
+			day.Title,
+			day.Type,
+			day.PersonName,
+			day.Relationship,
+			day.Description,
+			day.EventYear,
+			day.EventMonth,
+			day.EventDay,
+			day.Recurrence,
+			day.Timezone,
+			day.ReminderTime,
+			day.CreatedAt,
+			day.UpdatedAt,
+		).
+		ToSql()
+	if err != nil {
+		return fmt.Errorf("ImportantDayRepo - storeImportantDayTx - r.Builder: %w", err)
+	}
+
+	if _, err = tx.Exec(ctx, sql, args...); err != nil {
+		return fmt.Errorf("ImportantDayRepo - storeImportantDayTx - tx.Exec: %w", err)
+	}
+
+	return nil
+}
+
+func (r *ImportantDayRepo) updateImportantDayTx(ctx context.Context, tx pgx.Tx, day *entity.ImportantDay) error {
+	sql, args, err := r.Builder.
+		Update("important_days").
+		Set("title", day.Title).
+		Set("type", day.Type).
+		Set("person_name", day.PersonName).
+		Set("relationship", day.Relationship).
+		Set("description", day.Description).
+		Set("event_year", day.EventYear).
+		Set("event_month", day.EventMonth).
+		Set("event_day", day.EventDay).
+		Set("recurrence", day.Recurrence).
+		Set("timezone", day.Timezone).
+		Set("reminder_time", day.ReminderTime).
+		Set("updated_at", day.UpdatedAt).
+		Where(sq.Eq{"id": day.ID, "user_id": day.UserID}).
+		ToSql()
+	if err != nil {
+		return fmt.Errorf("ImportantDayRepo - updateImportantDayTx - r.Builder: %w", err)
+	}
+
+	result, err := tx.Exec(ctx, sql, args...)
+	if err != nil {
+		return fmt.Errorf("ImportantDayRepo - updateImportantDayTx - tx.Exec: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return entity.ErrImportantDayNotFound
+	}
+
+	return nil
+}
+
+func replaceReminderRulesTx(ctx context.Context, builder sq.StatementBuilderType, tx pgx.Tx, userID, importantDayID string, rules []entity.ReminderRule) error {
+	sql, args, err := builder.
+		Delete("reminder_rules").
+		Where(sq.Eq{"user_id": userID, "important_day_id": importantDayID}).
+		ToSql()
+	if err != nil {
+		return fmt.Errorf("ImportantDayRepo - replaceReminderRulesTx - delete builder: %w", err)
+	}
+
+	if _, err = tx.Exec(ctx, sql, args...); err != nil {
+		return fmt.Errorf("ImportantDayRepo - replaceReminderRulesTx - delete: %w", err)
+	}
+
+	for _, rule := range rules {
+		channels, marshalErr := marshalChannels(rule.Channels)
+		if marshalErr != nil {
+			return fmt.Errorf("ImportantDayRepo - replaceReminderRulesTx - marshal: %w", marshalErr)
+		}
+
+		sql, args, err = builder.
+			Insert("reminder_rules").
+			Columns("id, user_id, important_day_id, offset_days, channels, created_at, updated_at").
+			Values(rule.ID, rule.UserID, rule.ImportantDayID, rule.OffsetDays, channels, rule.CreatedAt, rule.UpdatedAt).
+			ToSql()
+		if err != nil {
+			return fmt.Errorf("ImportantDayRepo - replaceReminderRulesTx - insert builder: %w", err)
+		}
+
+		if _, err = tx.Exec(ctx, sql, args...); err != nil {
+			return fmt.Errorf("ImportantDayRepo - replaceReminderRulesTx - insert: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func replacePendingReminderJobsTx(ctx context.Context, builder sq.StatementBuilderType, tx pgx.Tx, userID, importantDayID string, jobs []entity.ReminderJob) error {
+	sql, args, err := builder.
+		Delete("reminder_jobs").
+		Where(sq.Eq{"user_id": userID, "important_day_id": importantDayID, "status": entity.ReminderJobStatusPending}).
+		ToSql()
+	if err != nil {
+		return fmt.Errorf("ImportantDayRepo - replacePendingReminderJobsTx - delete builder: %w", err)
+	}
+
+	if _, err = tx.Exec(ctx, sql, args...); err != nil {
+		return fmt.Errorf("ImportantDayRepo - replacePendingReminderJobsTx - delete: %w", err)
+	}
+
+	for _, job := range jobs {
+		channels, marshalErr := marshalChannels(job.Channels)
+		if marshalErr != nil {
+			return fmt.Errorf("ImportantDayRepo - replacePendingReminderJobsTx - marshal: %w", marshalErr)
+		}
+
+		sql, args, err = builder.
+			Insert("reminder_jobs").
+			Columns("id, user_id, important_day_id, reminder_rule_id, occurrence_date, offset_days, channels, scheduled_at, status, attempts, last_error, locked_until, sent_at, created_at, updated_at").
+			Values(
+				job.ID,
+				job.UserID,
+				job.ImportantDayID,
+				job.ReminderRuleID,
+				job.OccurrenceDate,
+				job.OffsetDays,
+				channels,
+				job.ScheduledAt,
+				job.Status,
+				job.Attempts,
+				job.LastError,
+				job.LockedUntil,
+				job.SentAt,
+				job.CreatedAt,
+				job.UpdatedAt,
+			).
+			Suffix("ON CONFLICT (important_day_id, occurrence_date, offset_days) DO UPDATE SET channels = EXCLUDED.channels, scheduled_at = EXCLUDED.scheduled_at, status = EXCLUDED.status, attempts = 0, last_error = '', locked_until = NULL, sent_at = NULL, updated_at = EXCLUDED.updated_at").
+			ToSql()
+		if err != nil {
+			return fmt.Errorf("ImportantDayRepo - replacePendingReminderJobsTx - insert builder: %w", err)
+		}
+
+		if _, err = tx.Exec(ctx, sql, args...); err != nil {
+			return fmt.Errorf("ImportantDayRepo - replacePendingReminderJobsTx - insert: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func rollbackTx(ctx context.Context, tx pgx.Tx, err *error, message string) {
+	if rollbackErr := tx.Rollback(ctx); rollbackErr != nil && !errors.Is(rollbackErr, pgx.ErrTxClosed) {
+		*err = errors.Join(*err, fmt.Errorf("%s: %w", message, rollbackErr))
+	}
+}
+
 // ReminderRuleRepo -.
 type ReminderRuleRepo struct {
 	*postgres.Postgres
@@ -217,43 +453,15 @@ func NewReminderRuleRepo(pg *postgres.Postgres) *ReminderRuleRepo {
 }
 
 // ReplaceForImportantDay -.
-func (r *ReminderRuleRepo) ReplaceForImportantDay(ctx context.Context, userID, importantDayID string, rules []entity.ReminderRule) error {
+func (r *ReminderRuleRepo) ReplaceForImportantDay(ctx context.Context, userID, importantDayID string, rules []entity.ReminderRule) (err error) {
 	tx, err := r.Pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("ReminderRuleRepo - ReplaceForImportantDay - Begin: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer rollbackTx(ctx, tx, &err, "ReminderRuleRepo - ReplaceForImportantDay - Rollback")
 
-	sql, args, err := r.Builder.
-		Delete("reminder_rules").
-		Where(sq.Eq{"user_id": userID, "important_day_id": importantDayID}).
-		ToSql()
-	if err != nil {
-		return fmt.Errorf("ReminderRuleRepo - ReplaceForImportantDay - delete builder: %w", err)
-	}
-
-	if _, err = tx.Exec(ctx, sql, args...); err != nil {
-		return fmt.Errorf("ReminderRuleRepo - ReplaceForImportantDay - delete: %w", err)
-	}
-
-	for _, rule := range rules {
-		channels, marshalErr := marshalChannels(rule.Channels)
-		if marshalErr != nil {
-			return fmt.Errorf("ReminderRuleRepo - ReplaceForImportantDay - marshal: %w", marshalErr)
-		}
-
-		sql, args, err = r.Builder.
-			Insert("reminder_rules").
-			Columns("id, user_id, important_day_id, offset_days, channels, created_at, updated_at").
-			Values(rule.ID, rule.UserID, rule.ImportantDayID, rule.OffsetDays, channels, rule.CreatedAt, rule.UpdatedAt).
-			ToSql()
-		if err != nil {
-			return fmt.Errorf("ReminderRuleRepo - ReplaceForImportantDay - insert builder: %w", err)
-		}
-
-		if _, err = tx.Exec(ctx, sql, args...); err != nil {
-			return fmt.Errorf("ReminderRuleRepo - ReplaceForImportantDay - insert: %w", err)
-		}
+	if err = replaceReminderRulesTx(ctx, r.Builder, tx, userID, importantDayID, rules); err != nil {
+		return fmt.Errorf("ReminderRuleRepo - ReplaceForImportantDay - replaceReminderRulesTx: %w", err)
 	}
 
 	if err = tx.Commit(ctx); err != nil {

@@ -113,6 +113,23 @@ func TestTaskList(t *testing.T) {
 		assert.Equal(t, 2, total)
 		assert.Len(t, tasks, 2)
 	})
+
+	t.Run("list caps limit", func(t *testing.T) {
+		t.Parallel()
+
+		uc, mockRepo := newTaskUseCase(t)
+		mockRepo.EXPECT().List(context.Background(), "user-id-123", repo.TaskFilter{
+			Status: nil,
+			Limit:  uint64(100),
+			Offset: uint64(0),
+		}).Return([]entity.Task{task1, task2}, 2, nil)
+
+		tasks, total, err := uc.List(context.Background(), "user-id-123", nil, 1000, 0)
+
+		require.NoError(t, err)
+		assert.Equal(t, 2, total)
+		assert.Len(t, tasks, 2)
+	})
 }
 
 func TestTaskUpdate(t *testing.T) {

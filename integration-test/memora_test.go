@@ -7,9 +7,14 @@ import (
 	"testing"
 	"time"
 
+	protov1 "github.com/evrone/go-clean-template/docs/proto/v1"
 	"github.com/evrone/go-clean-template/internal/entity"
 	"github.com/evrone/go-clean-template/internal/repo/persistent"
 	"github.com/google/uuid"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 )
 
 type importantDayResponse struct {
@@ -53,7 +58,7 @@ func TestHTTPImportantDaysV1(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Create important day: %v", err)
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusCreated {
 		t.Fatalf("expected 201, got %d", resp.StatusCode)
@@ -71,7 +76,7 @@ func TestHTTPImportantDaysV1(t *testing.T) {
 	if err != nil {
 		t.Fatalf("List important days: %v", err)
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
@@ -94,7 +99,7 @@ func TestHTTPImportantDaysV1(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Upcoming important days: %v", err)
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
@@ -113,7 +118,7 @@ func TestHTTPImportantDayRemindersV1(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Replace reminders: %v", err)
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
@@ -136,7 +141,7 @@ func TestHTTPImportantDayRemindersV1(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Get reminders: %v", err)
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
@@ -163,7 +168,7 @@ func TestHTTPUserSettingsV1(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Get user settings: %v", err)
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
@@ -188,7 +193,7 @@ func TestHTTPUserSettingsV1(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Update user settings: %v", err)
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
@@ -214,7 +219,7 @@ func TestHTTPUserSettingsV1(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Update invalid user settings: %v", err)
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d", resp.StatusCode)
@@ -231,7 +236,7 @@ func TestHTTPDevicesAndNotificationsV1(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Register device: %v", err)
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusCreated {
 		t.Fatalf("expected 201, got %d", resp.StatusCode)
@@ -249,7 +254,7 @@ func TestHTTPDevicesAndNotificationsV1(t *testing.T) {
 	if err != nil {
 		t.Fatalf("List devices: %v", err)
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
@@ -270,7 +275,7 @@ func TestHTTPDevicesAndNotificationsV1(t *testing.T) {
 	if err != nil {
 		t.Fatalf("List notifications: %v", err)
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
@@ -283,7 +288,7 @@ func TestHTTPDevicesAndNotificationsV1(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Count unread notifications: %v", err)
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
@@ -303,7 +308,7 @@ func TestHTTPDevicesAndNotificationsV1(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Delete device: %v", err)
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusNoContent {
 		t.Fatalf("expected 204, got %d", resp.StatusCode)
@@ -316,7 +321,7 @@ func TestHTTPDevicesAndNotificationsV1(t *testing.T) {
 	if err != nil {
 		t.Fatalf("List devices after delete: %v", err)
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
@@ -374,7 +379,7 @@ func TestHTTPNotificationReadFlowV1(t *testing.T) {
 		Notifications []notificationResponse `json:"notifications"`
 		Total         int                    `json:"total"`
 	}](t, resp)
-	resp.Body.Close()
+	closeResponseBody(t, resp)
 
 	if unread.Total != 2 || len(unread.Notifications) != 2 {
 		t.Fatalf("expected 2 unread notifications, got %+v", unread)
@@ -390,7 +395,7 @@ func TestHTTPNotificationReadFlowV1(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Mark notification read: %v", err)
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
@@ -410,7 +415,7 @@ func TestHTTPNotificationReadFlowV1(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Mark all notifications read: %v", err)
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusNoContent {
 		t.Fatalf("expected 204, got %d", resp.StatusCode)
@@ -423,7 +428,7 @@ func TestHTTPNotificationReadFlowV1(t *testing.T) {
 		Notifications []notificationResponse `json:"notifications"`
 		Total         int                    `json:"total"`
 	}](t, resp)
-	resp.Body.Close()
+	closeResponseBody(t, resp)
 
 	if unread.Total != 0 || len(unread.Notifications) != 0 {
 		t.Fatalf("expected no unread notifications, got %+v", unread)
@@ -441,7 +446,7 @@ func TestHTTPMobileBootstrapV1(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Register bootstrap device: %v", err)
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusCreated {
 		t.Fatalf("expected 201, got %d", resp.StatusCode)
@@ -459,7 +464,7 @@ func TestHTTPMobileBootstrapV1(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Mobile bootstrap: %v", err)
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
@@ -504,7 +509,7 @@ func TestHTTPRegisterDeviceRejectsInvalidExpoTokenV1(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Register invalid device: %v", err)
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d", resp.StatusCode)
@@ -521,10 +526,248 @@ func TestHTTPTestPushDeviceNotFoundV1(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Test push missing device: %v", err)
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d", resp.StatusCode)
+	}
+}
+
+func TestGRPCImportantDaysV1(t *testing.T) {
+	token := registerAndLoginGRPC(t)
+	client, conn := grpcImportantDayClient(t)
+	defer closeGRPCConn(t, conn)
+
+	authCtx := grpcAuthCtx(t, token)
+	eventYear := int32(1970)
+
+	created, err := client.CreateImportantDay(authCtx, &protov1.CreateImportantDayRequest{
+		Title:        "Mom birthday",
+		Type:         "birthday",
+		PersonName:   "Mom",
+		Relationship: "mother",
+		EventYear:    &eventYear,
+		EventMonth:   5,
+		EventDay:     13,
+		Timezone:     "Asia/Jakarta",
+		ReminderTime: "08:30",
+		ReminderRules: []*protov1.ReminderRuleRequest{
+			{OffsetDays: 3, Channels: []string{"email", "in_app"}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("CreateImportantDay: %v", err)
+	}
+	if created.GetId() == "" {
+		t.Fatal("expected non-empty important day id")
+	}
+	if created.GetTitle() != "Mom birthday" || created.GetType() != "birthday" || created.GetEventYear() != eventYear {
+		t.Fatalf("unexpected created important day: %+v", created)
+	}
+
+	got, err := client.GetImportantDay(authCtx, &protov1.GetImportantDayRequest{Id: created.GetId()})
+	if err != nil {
+		t.Fatalf("GetImportantDay: %v", err)
+	}
+	if got.GetId() != created.GetId() {
+		t.Fatalf("expected id %q, got %q", created.GetId(), got.GetId())
+	}
+
+	listed, err := client.ListImportantDays(authCtx, &protov1.ListImportantDaysRequest{
+		Type:   "birthday",
+		Limit:  10,
+		Offset: 0,
+	})
+	if err != nil {
+		t.Fatalf("ListImportantDays: %v", err)
+	}
+	if listed.GetTotal() < 1 || len(listed.GetImportantDays()) < 1 {
+		t.Fatalf("expected at least one important day, got %+v", listed)
+	}
+
+	upcoming, err := client.UpcomingImportantDays(authCtx, &protov1.UpcomingImportantDaysRequest{
+		Days:   730,
+		Limit:  10,
+		Offset: 0,
+	})
+	if err != nil {
+		t.Fatalf("UpcomingImportantDays: %v", err)
+	}
+	if upcoming.GetTotal() < 1 || len(upcoming.GetImportantDays()) < 1 {
+		t.Fatalf("expected at least one upcoming important day, got %+v", upcoming)
+	}
+
+	updated, err := client.UpdateImportantDay(authCtx, &protov1.UpdateImportantDayRequest{
+		Id:           created.GetId(),
+		Title:        "Mom birthday updated",
+		Type:         "birthday",
+		PersonName:   "Mom",
+		Relationship: "mother",
+		EventYear:    &eventYear,
+		EventMonth:   5,
+		EventDay:     14,
+		Timezone:     "Asia/Jakarta",
+		ReminderTime: "09:15",
+	})
+	if err != nil {
+		t.Fatalf("UpdateImportantDay: %v", err)
+	}
+	if updated.GetTitle() != "Mom birthday updated" || updated.GetEventDay() != 14 || updated.GetReminderTime() != "09:15" {
+		t.Fatalf("unexpected updated important day: %+v", updated)
+	}
+
+	rules, err := client.ReplaceImportantDayReminders(authCtx, &protov1.ReplaceReminderRulesRequest{
+		Id: created.GetId(),
+		Rules: []*protov1.ReminderRuleRequest{
+			{OffsetDays: 7, Channels: []string{"in_app", "push"}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("ReplaceImportantDayReminders: %v", err)
+	}
+	if len(rules.GetRules()) != 1 || rules.GetRules()[0].GetOffsetDays() != 7 {
+		t.Fatalf("unexpected reminder rules: %+v", rules)
+	}
+
+	_, err = client.DeleteImportantDay(authCtx, &protov1.DeleteImportantDayRequest{Id: created.GetId()})
+	if err != nil {
+		t.Fatalf("DeleteImportantDay: %v", err)
+	}
+
+	_, err = client.GetImportantDay(authCtx, &protov1.GetImportantDayRequest{Id: created.GetId()})
+	if status.Code(err) != codes.NotFound {
+		t.Fatalf("expected NotFound after delete, got %v", err)
+	}
+}
+
+func TestGRPCImportantDayValidationV1(t *testing.T) {
+	token := registerAndLoginGRPC(t)
+	client, conn := grpcImportantDayClient(t)
+	defer closeGRPCConn(t, conn)
+
+	authCtx := grpcAuthCtx(t, token)
+
+	tests := []struct {
+		name string
+		call func() error
+	}{
+		{
+			name: "missing title",
+			call: func() error {
+				_, err := client.CreateImportantDay(authCtx, &protov1.CreateImportantDayRequest{
+					EventMonth: 1,
+					EventDay:   2,
+				})
+
+				return err
+			},
+		},
+		{
+			name: "invalid month",
+			call: func() error {
+				_, err := client.CreateImportantDay(authCtx, &protov1.CreateImportantDayRequest{
+					Title:      "Invalid month",
+					EventMonth: 13,
+					EventDay:   2,
+				})
+
+				return err
+			},
+		},
+		{
+			name: "invalid reminder channel",
+			call: func() error {
+				_, err := client.CreateImportantDay(authCtx, &protov1.CreateImportantDayRequest{
+					Title:      "Invalid channel",
+					EventMonth: 1,
+					EventDay:   2,
+					ReminderRules: []*protov1.ReminderRuleRequest{
+						{OffsetDays: 1, Channels: []string{"sms"}},
+					},
+				})
+
+				return err
+			},
+		},
+		{
+			name: "missing update id",
+			call: func() error {
+				_, err := client.UpdateImportantDay(authCtx, &protov1.UpdateImportantDayRequest{
+					Title:      "Missing id",
+					EventMonth: 1,
+					EventDay:   2,
+				})
+
+				return err
+			},
+		},
+		{
+			name: "invalid reminder offset",
+			call: func() error {
+				_, err := client.ReplaceImportantDayReminders(authCtx, &protov1.ReplaceReminderRulesRequest{
+					Id: "missing",
+					Rules: []*protov1.ReminderRuleRequest{
+						{OffsetDays: -1, Channels: []string{"in_app"}},
+					},
+				})
+
+				return err
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.call()
+			if status.Code(err) != codes.InvalidArgument {
+				t.Fatalf("expected InvalidArgument, got %v", err)
+			}
+		})
+	}
+}
+
+func TestGRPCDeviceValidationV1(t *testing.T) {
+	token := registerAndLoginGRPC(t)
+
+	grpcConn, err := grpc.NewClient(grpcURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		t.Fatalf("grpc.NewClient: %v", err)
+	}
+	defer closeGRPCConn(t, grpcConn)
+
+	client := protov1.NewDeviceServiceClient(grpcConn)
+	authCtx := grpcAuthCtx(t, token)
+
+	_, err = client.RegisterDevice(authCtx, &protov1.RegisterDeviceRequest{
+		Platform: "ios",
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected missing token InvalidArgument, got %v", err)
+	}
+
+	_, err = client.RegisterDevice(authCtx, &protov1.RegisterDeviceRequest{
+		Token:    "not-an-expo-token",
+		Platform: "ios",
+	})
+	if status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("expected invalid token InvalidArgument, got %v", err)
+	}
+
+	registered, err := client.RegisterDevice(authCtx, &protov1.RegisterDeviceRequest{
+		Token:    "ExpoPushToken[grpc-device]",
+		Platform: "ios",
+		Name:     "iPhone",
+	})
+	if err != nil {
+		t.Fatalf("RegisterDevice: %v", err)
+	}
+	if registered.GetId() == "" || !registered.GetActive() {
+		t.Fatalf("unexpected registered device: %+v", registered)
+	}
+
+	_, err = client.DeleteDevice(authCtx, &protov1.DeleteDeviceRequest{Id: registered.GetId()})
+	if err != nil {
+		t.Fatalf("DeleteDevice: %v", err)
 	}
 }
 
@@ -538,7 +781,7 @@ func httpCreateImportantDay(t *testing.T, token string) importantDayResponse {
 	if err != nil {
 		t.Fatalf("Create important day: %v", err)
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusCreated {
 		t.Fatalf("expected 201, got %d", resp.StatusCode)
@@ -559,7 +802,7 @@ func httpGetProfile(t *testing.T, token string) struct {
 	if err != nil {
 		t.Fatalf("Get profile: %v", err)
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
@@ -587,7 +830,7 @@ func httpListNotifications(t *testing.T, token string, unreadOnly bool) *http.Re
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		defer resp.Body.Close()
+		defer closeResponseBody(t, resp)
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
 	}
 
@@ -604,7 +847,7 @@ func assertUnreadNotificationCount(t *testing.T, token string, expected int) {
 	if err != nil {
 		t.Fatalf("Count unread notifications: %v", err)
 	}
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
@@ -626,4 +869,23 @@ func hasNotificationID(notifications []notificationResponse, id string) bool {
 	}
 
 	return false
+}
+
+func grpcImportantDayClient(t *testing.T) (protov1.ImportantDayServiceClient, *grpc.ClientConn) {
+	t.Helper()
+
+	grpcConn, err := grpc.NewClient(grpcURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		t.Fatalf("grpc.NewClient: %v", err)
+	}
+
+	return protov1.NewImportantDayServiceClient(grpcConn), grpcConn
+}
+
+func closeGRPCConn(t *testing.T, grpcConn *grpc.ClientConn) {
+	t.Helper()
+
+	if err := grpcConn.Close(); err != nil {
+		t.Fatalf("grpcConn.Close: %v", err)
+	}
 }

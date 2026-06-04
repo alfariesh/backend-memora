@@ -43,7 +43,7 @@ func httpCreateTask(t *testing.T, token, title, description string) taskResponse
 		t.Fatalf("Create task: %v", err)
 	}
 
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusCreated {
 		t.Fatalf("Create task: expected 201, got %d", resp.StatusCode)
@@ -91,7 +91,7 @@ func TestHTTPTaskGetV1(t *testing.T) {
 		t.Fatalf("Get task: %v", err)
 	}
 
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
@@ -117,7 +117,7 @@ func TestHTTPTaskListV1(t *testing.T) {
 		t.Fatalf("List tasks: %v", err)
 	}
 
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
@@ -150,7 +150,7 @@ func TestHTTPTaskUpdateV1(t *testing.T) {
 		t.Fatalf("Update task: %v", err)
 	}
 
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
@@ -176,7 +176,7 @@ func TestHTTPTaskDeleteV1(t *testing.T) {
 		t.Fatalf("Delete task: %v", err)
 	}
 
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusNoContent {
 		t.Errorf("expected 204, got %d", resp.StatusCode)
@@ -198,7 +198,7 @@ func TestHTTPTaskStatusTransitionValidV1(t *testing.T) {
 		t.Fatalf("Transition to in_progress: %v", err)
 	}
 
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
@@ -216,7 +216,7 @@ func TestHTTPTaskStatusTransitionValidV1(t *testing.T) {
 		t.Fatalf("Transition to done: %v", err)
 	}
 
-	defer resp2.Body.Close()
+	defer closeResponseBody(t, resp2)
 
 	if resp2.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp2.StatusCode)
@@ -239,7 +239,7 @@ func TestHTTPTaskStatusTransitionInvalidV1(t *testing.T) {
 		t.Fatalf("Transition to done: %v", err)
 	}
 
-	defer resp.Body.Close()
+	defer closeResponseBody(t, resp)
 
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Errorf("expected 400, got %d", resp.StatusCode)
@@ -259,7 +259,7 @@ func TestHTTPTaskErrorsV1(t *testing.T) {
 			t.Fatalf("Failed to send request: %v", err)
 		}
 
-		defer resp.Body.Close()
+		defer closeResponseBody(t, resp)
 
 		if resp.StatusCode != http.StatusUnauthorized {
 			t.Errorf("Expected status 401, got %d", resp.StatusCode)
@@ -277,7 +277,7 @@ func TestHTTPTaskErrorsV1(t *testing.T) {
 			t.Fatalf("Failed to send request: %v", err)
 		}
 
-		defer resp.Body.Close()
+		defer closeResponseBody(t, resp)
 
 		if resp.StatusCode != http.StatusNotFound {
 			t.Errorf("Expected status 404, got %d", resp.StatusCode)
@@ -297,7 +297,7 @@ func TestHTTPTaskErrorsV1(t *testing.T) {
 			t.Fatalf("Failed to send request: %v", err)
 		}
 
-		defer resp.Body.Close()
+		defer closeResponseBody(t, resp)
 
 		if resp.StatusCode != http.StatusBadRequest {
 			t.Errorf("Expected status 400, got %d", resp.StatusCode)

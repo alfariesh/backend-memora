@@ -205,6 +205,43 @@ func TestReminderRunOnceSuccessStoresNotificationPushAndSchedulesNext(t *testing
 	assert.Equal(t, 1, processed)
 }
 
+func TestReminderRunOnceSkipsUnconfiguredEmailAndStoresInApp(t *testing.T) {
+	t.Parallel()
+
+	now, job, day, user := reminderFixtures()
+	job.Channels = []entity.ReminderChannel{
+		entity.ReminderChannelEmail,
+		entity.ReminderChannelInApp,
+	}
+	uc, deps := newReminderUseCase(t)
+	expectReminderJobLoaded(deps, now, job, day, user)
+	deps.emailSender.EXPECT().
+		Send(
+			context.Background(),
+			user.Email,
+			"Mom birthday is in 7 days",
+			gomock.Any(),
+		).
+		Return("", entity.ErrEmailSenderNotConfigured)
+	deps.notificationRepo.EXPECT().
+		Store(context.Background(), gomock.AssignableToTypeOf(&entity.Notification{})).
+		DoAndReturn(func(_ context.Context, notification *entity.Notification) error {
+			require.NotEmpty(t, notification.ID)
+			assert.Equal(t, job.UserID, notification.UserID)
+			assert.Equal(t, "important_day_reminder", notification.Type)
+			assert.Equal(t, "Mom birthday is in 7 days", notification.Title)
+			assert.Equal(t, "Mom birthday is coming in 7 days.", notification.Body)
+
+			return nil
+		})
+	expectNextReminderScheduled(t, deps, now, job)
+
+	processed, err := uc.RunOnce(context.Background(), now, 10)
+
+	require.NoError(t, err)
+	assert.Equal(t, 1, processed)
+}
+
 func TestReminderRunOnceDeactivatesUnregisteredPushToken(t *testing.T) {
 	t.Parallel()
 

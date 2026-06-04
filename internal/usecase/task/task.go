@@ -10,6 +10,11 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	defaultTaskListLimit = 10
+	maxTaskListLimit     = 100
+)
+
 // UseCase -.
 type UseCase struct {
 	repo repo.TaskRepo
@@ -55,7 +60,11 @@ func (uc *UseCase) Get(ctx context.Context, userID, taskID string) (entity.Task,
 // List -.
 func (uc *UseCase) List(ctx context.Context, userID string, status *entity.TaskStatus, limit, offset int) ([]entity.Task, int, error) {
 	if limit <= 0 {
-		limit = 10
+		limit = defaultTaskListLimit
+	}
+
+	if limit > maxTaskListLimit {
+		limit = maxTaskListLimit
 	}
 
 	if offset < 0 {
