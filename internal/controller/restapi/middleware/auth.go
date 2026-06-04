@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/evrone/go-clean-template/pkg/jwt"
+	"github.com/alfariesh/backend-memora/pkg/jwt"
 	"github.com/gofiber/fiber/v2"
 )
 

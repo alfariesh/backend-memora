@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/evrone/go-clean-template/internal/controller/grpc/v1/response"
-	"github.com/evrone/go-clean-template/internal/entity"
+	"github.com/alfariesh/backend-memora/internal/controller/grpc/v1/response"
+	"github.com/alfariesh/backend-memora/internal/entity"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -149,38 +149,4 @@ func TestNewListTasksResponse_Empty(t *testing.T) {
 	require.NotNil(t, resp)
 	assert.Empty(t, resp.Tasks)
 	assert.Equal(t, int32(0), resp.Total)
-}
-
-func TestNewTranslationHistory(t *testing.T) {
-	t.Parallel()
-
-	history := entity.TranslationHistory{
-		History: []entity.Translation{
-			{
-				Source:      "en",
-				Destination: "ru",
-				Original:    "hello",
-				Translation: "привет",
-			},
-			{
-				Source:      "ru",
-				Destination: "en",
-				Original:    "мир",
-				Translation: "world",
-			},
-		},
-	}
-
-	resp := response.NewTranslationHistory(history)
-
-	require.NotNil(t, resp)
-	require.Len(t, resp.History, 2)
-	assert.Equal(t, "en", resp.History[0].Source)
-	assert.Equal(t, "ru", resp.History[0].Destination)
-	assert.Equal(t, "hello", resp.History[0].Original)
-	assert.Equal(t, "привет", resp.History[0].Translation)
-	assert.Equal(t, "ru", resp.History[1].Source)
-	assert.Equal(t, "en", resp.History[1].Destination)
-	assert.Equal(t, "мир", resp.History[1].Original)
-	assert.Equal(t, "world", resp.History[1].Translation)
 }

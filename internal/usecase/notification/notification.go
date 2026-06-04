@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/evrone/go-clean-template/internal/entity"
-	"github.com/evrone/go-clean-template/internal/repo"
+	"github.com/alfariesh/backend-memora/internal/entity"
+	"github.com/alfariesh/backend-memora/internal/repo"
 )
 
 const (

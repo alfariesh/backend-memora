@@ -1,16 +1,15 @@
 package v1
 
 import (
-	v1 "github.com/evrone/go-clean-template/internal/controller/nats_rpc/v1"
-	"github.com/evrone/go-clean-template/internal/usecase"
-	"github.com/evrone/go-clean-template/pkg/jwt"
-	"github.com/evrone/go-clean-template/pkg/logger"
-	"github.com/evrone/go-clean-template/pkg/nats/nats_rpc/server"
+	v1 "github.com/alfariesh/backend-memora/internal/controller/nats_rpc/v1"
+	"github.com/alfariesh/backend-memora/internal/usecase"
+	"github.com/alfariesh/backend-memora/pkg/jwt"
+	"github.com/alfariesh/backend-memora/pkg/logger"
+	"github.com/alfariesh/backend-memora/pkg/nats/nats_rpc/server"
 )
 
 // NewRouter -.
 func NewRouter(
-	t usecase.Translation,
 	u usecase.User,
 	tk usecase.Task,
 	id usecase.ImportantDay,
@@ -22,7 +21,7 @@ func NewRouter(
 	routes := make(map[string]server.CallHandler)
 
 	{
-		v1.NewRoutes(routes, t, u, tk, id, n, d, j, l)
+		v1.NewRoutes(routes, u, tk, id, n, d, j, l)
 	}
 
 	return routes

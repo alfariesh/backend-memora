@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/evrone/go-clean-template/internal/controller/restapi/middleware"
-	"github.com/evrone/go-clean-template/pkg/jwt"
+	"github.com/alfariesh/backend-memora/internal/controller/restapi/middleware"
+	"github.com/alfariesh/backend-memora/pkg/jwt"
 	"github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -7,34 +7,32 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/evrone/go-clean-template/config"
-	amqprpc "github.com/evrone/go-clean-template/internal/controller/amqp_rpc"
-	"github.com/evrone/go-clean-template/internal/controller/grpc"
-	grpcmw "github.com/evrone/go-clean-template/internal/controller/grpc/middleware"
-	natsrpc "github.com/evrone/go-clean-template/internal/controller/nats_rpc"
-	"github.com/evrone/go-clean-template/internal/controller/restapi"
-	"github.com/evrone/go-clean-template/internal/repo/persistent"
-	"github.com/evrone/go-clean-template/internal/repo/webapi"
-	"github.com/evrone/go-clean-template/internal/usecase/device"
-	"github.com/evrone/go-clean-template/internal/usecase/importantday"
-	"github.com/evrone/go-clean-template/internal/usecase/notification"
-	"github.com/evrone/go-clean-template/internal/usecase/reminder"
-	"github.com/evrone/go-clean-template/internal/usecase/task"
-	"github.com/evrone/go-clean-template/internal/usecase/translation"
-	"github.com/evrone/go-clean-template/internal/usecase/user"
-	"github.com/evrone/go-clean-template/internal/usecase/usersettings"
-	"github.com/evrone/go-clean-template/pkg/grpcserver"
-	"github.com/evrone/go-clean-template/pkg/httpserver"
-	"github.com/evrone/go-clean-template/pkg/jwt"
-	"github.com/evrone/go-clean-template/pkg/logger"
-	natsRPCServer "github.com/evrone/go-clean-template/pkg/nats/nats_rpc/server"
-	"github.com/evrone/go-clean-template/pkg/postgres"
-	rmqRPCServer "github.com/evrone/go-clean-template/pkg/rabbitmq/rmq_rpc/server"
+	"github.com/alfariesh/backend-memora/config"
+	amqprpc "github.com/alfariesh/backend-memora/internal/controller/amqp_rpc"
+	"github.com/alfariesh/backend-memora/internal/controller/grpc"
+	grpcmw "github.com/alfariesh/backend-memora/internal/controller/grpc/middleware"
+	natsrpc "github.com/alfariesh/backend-memora/internal/controller/nats_rpc"
+	"github.com/alfariesh/backend-memora/internal/controller/restapi"
+	"github.com/alfariesh/backend-memora/internal/repo/persistent"
+	"github.com/alfariesh/backend-memora/internal/repo/webapi"
+	"github.com/alfariesh/backend-memora/internal/usecase/device"
+	"github.com/alfariesh/backend-memora/internal/usecase/importantday"
+	"github.com/alfariesh/backend-memora/internal/usecase/notification"
+	"github.com/alfariesh/backend-memora/internal/usecase/reminder"
+	"github.com/alfariesh/backend-memora/internal/usecase/task"
+	"github.com/alfariesh/backend-memora/internal/usecase/user"
+	"github.com/alfariesh/backend-memora/internal/usecase/usersettings"
+	"github.com/alfariesh/backend-memora/pkg/grpcserver"
+	"github.com/alfariesh/backend-memora/pkg/httpserver"
+	"github.com/alfariesh/backend-memora/pkg/jwt"
+	"github.com/alfariesh/backend-memora/pkg/logger"
+	natsRPCServer "github.com/alfariesh/backend-memora/pkg/nats/nats_rpc/server"
+	"github.com/alfariesh/backend-memora/pkg/postgres"
+	rmqRPCServer "github.com/alfariesh/backend-memora/pkg/rabbitmq/rmq_rpc/server"
 	pbgrpc "google.golang.org/grpc"
 )
 
 type useCases struct {
-	translation  *translation.UseCase
 	user         *user.UseCase
 	userSettings *usersettings.UseCase
 	task         *task.UseCase
@@ -56,7 +54,6 @@ func initUseCases(cfg *config.Config, pg *postgres.Postgres, jwtManager *jwt.Man
 	userSessionRepo := persistent.NewUserSessionRepo(pg)
 	userSettingsRepo := persistent.NewUserSettingsRepo(pg)
 	taskRepo := persistent.NewTaskRepo(pg)
-	translationRepo := persistent.NewTranslationRepo(pg)
 	importantDayRepo := persistent.NewImportantDayRepo(pg)
 	reminderRuleRepo := persistent.NewReminderRuleRepo(pg)
 	reminderJobRepo := persistent.NewReminderJobRepo(pg)
@@ -69,7 +66,6 @@ func initUseCases(cfg *config.Config, pg *postgres.Postgres, jwtManager *jwt.Man
 		user:         user.New(userRepo, jwtManager, user.SessionRepo(userSessionRepo), user.RefreshTokenTTL(cfg.JWT.RefreshTokenExpiry)),
 		userSettings: usersettings.New(userSettingsRepo),
 		task:         task.New(taskRepo),
-		translation:  translation.New(translationRepo, webapi.New()),
 		importantDay: importantday.New(importantDayRepo, reminderRuleRepo, reminderJobRepo, userSettingsRepo),
 		notification: notification.New(notificationRepo),
 		device:       device.New(deviceTokenRepo, device.PushSender(pushSender)),
@@ -88,7 +84,7 @@ func initUseCases(cfg *config.Config, pg *postgres.Postgres, jwtManager *jwt.Man
 
 func initServers(cfg *config.Config, uc useCases, jwtManager *jwt.Manager, l logger.Interface) servers {
 	// RabbitMQ RPC Server
-	rmqRouter := amqprpc.NewRouter(uc.translation, uc.user, uc.task, uc.importantDay, uc.notification, uc.device, jwtManager, l)
+	rmqRouter := amqprpc.NewRouter(uc.user, uc.task, uc.importantDay, uc.notification, uc.device, jwtManager, l)
 
 	rmqServer, err := rmqRPCServer.New(cfg.RMQ.URL, cfg.RMQ.ServerExchange, rmqRouter, l)
 	if err != nil {
@@ -96,7 +92,7 @@ func initServers(cfg *config.Config, uc useCases, jwtManager *jwt.Manager, l log
 	}
 
 	// NATS RPC Server
-	natsRouter := natsrpc.NewRouter(uc.translation, uc.user, uc.task, uc.importantDay, uc.notification, uc.device, jwtManager, l)
+	natsRouter := natsrpc.NewRouter(uc.user, uc.task, uc.importantDay, uc.notification, uc.device, jwtManager, l)
 
 	natsServer, err := natsRPCServer.New(cfg.NATS.URL, cfg.NATS.ServerExchange, natsRouter, l)
 	if err != nil {
@@ -108,11 +104,11 @@ func initServers(cfg *config.Config, uc useCases, jwtManager *jwt.Manager, l log
 		grpcserver.Port(cfg.GRPC.Port),
 		grpcserver.ServerOptions(pbgrpc.UnaryInterceptor(grpcmw.AuthInterceptor(jwtManager))),
 	)
-	grpc.NewRouter(grpcServer.App, uc.translation, uc.user, uc.task, uc.importantDay, uc.notification, uc.device, l)
+	grpc.NewRouter(grpcServer.App, uc.user, uc.task, uc.importantDay, uc.notification, uc.device, l)
 
 	// HTTP Server
 	httpServer := httpserver.New(l, httpserver.Port(cfg.HTTP.Port), httpserver.Prefork(cfg.HTTP.UsePreforkMode))
-	restapi.NewRouter(httpServer.App, cfg, uc.translation, uc.user, uc.userSettings, uc.task, uc.importantDay, uc.notification, uc.device, jwtManager, l)
+	restapi.NewRouter(httpServer.App, cfg, uc.user, uc.userSettings, uc.task, uc.importantDay, uc.notification, uc.device, jwtManager, l)
 
 	return servers{
 		rmq:  rmqServer,

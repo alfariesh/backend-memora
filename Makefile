@@ -77,7 +77,7 @@ run-worker: deps ### run reminder worker
 .PHONY: run-worker
 
 docker-rm-volume: ### remove docker volume
-	docker volume rm go-clean-template_pg-data
+	docker volume rm backend-memora_pg-data
 .PHONY: docker-rm-volume
 
 linter-golangci: ### check by golangci linter

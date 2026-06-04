@@ -10,9 +10,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/evrone/go-clean-template/internal/entity"
-	"github.com/evrone/go-clean-template/internal/repo"
-	"github.com/evrone/go-clean-template/pkg/jwt"
+	"github.com/alfariesh/backend-memora/internal/entity"
+	"github.com/alfariesh/backend-memora/internal/repo"
+	"github.com/alfariesh/backend-memora/pkg/jwt"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )

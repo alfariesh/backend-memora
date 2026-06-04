@@ -1,15 +1,14 @@
 package v1
 
 import (
-	"github.com/evrone/go-clean-template/internal/usecase"
-	"github.com/evrone/go-clean-template/pkg/jwt"
-	"github.com/evrone/go-clean-template/pkg/logger"
+	"github.com/alfariesh/backend-memora/internal/usecase"
+	"github.com/alfariesh/backend-memora/pkg/jwt"
+	"github.com/alfariesh/backend-memora/pkg/logger"
 	"github.com/go-playground/validator/v10"
 )
 
 // V1 -.
 type V1 struct {
-	t  usecase.Translation
 	u  usecase.User
 	tk usecase.Task
 	id usecase.ImportantDay

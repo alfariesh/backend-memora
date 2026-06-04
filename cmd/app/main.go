@@ -4,8 +4,8 @@ import (
 	"log"
 	_ "time/tzdata"
 
-	"github.com/evrone/go-clean-template/config"
-	"github.com/evrone/go-clean-template/internal/app"
+	"github.com/alfariesh/backend-memora/config"
+	"github.com/alfariesh/backend-memora/internal/app"
 )
 
 func main() {

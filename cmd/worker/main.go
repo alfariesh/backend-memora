@@ -10,12 +10,12 @@ import (
 	"time"
 	_ "time/tzdata"
 
-	"github.com/evrone/go-clean-template/config"
-	"github.com/evrone/go-clean-template/internal/repo/persistent"
-	"github.com/evrone/go-clean-template/internal/repo/webapi"
-	"github.com/evrone/go-clean-template/internal/usecase/reminder"
-	"github.com/evrone/go-clean-template/pkg/logger"
-	"github.com/evrone/go-clean-template/pkg/postgres"
+	"github.com/alfariesh/backend-memora/config"
+	"github.com/alfariesh/backend-memora/internal/repo/persistent"
+	"github.com/alfariesh/backend-memora/internal/repo/webapi"
+	"github.com/alfariesh/backend-memora/internal/usecase/reminder"
+	"github.com/alfariesh/backend-memora/pkg/logger"
+	"github.com/alfariesh/backend-memora/pkg/postgres"
 )
 
 func main() {

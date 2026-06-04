@@ -3,14 +3,14 @@ package restapi
 import (
 	"net/http"
 
+	"github.com/alfariesh/backend-memora/config"
+	_ "github.com/alfariesh/backend-memora/docs" // Swagger docs.
+	"github.com/alfariesh/backend-memora/internal/controller/restapi/middleware"
+	v1 "github.com/alfariesh/backend-memora/internal/controller/restapi/v1"
+	"github.com/alfariesh/backend-memora/internal/usecase"
+	"github.com/alfariesh/backend-memora/pkg/jwt"
+	"github.com/alfariesh/backend-memora/pkg/logger"
 	"github.com/ansrivas/fiberprometheus/v2"
-	"github.com/evrone/go-clean-template/config"
-	_ "github.com/evrone/go-clean-template/docs" // Swagger docs.
-	"github.com/evrone/go-clean-template/internal/controller/restapi/middleware"
-	v1 "github.com/evrone/go-clean-template/internal/controller/restapi/v1"
-	"github.com/evrone/go-clean-template/internal/usecase"
-	"github.com/evrone/go-clean-template/pkg/jwt"
-	"github.com/evrone/go-clean-template/pkg/logger"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/swagger"
 )
@@ -19,7 +19,7 @@ import (
 // Swagger spec:
 //
 //	@title       Memora API
-//	@description Backend API for Memora important days, reminders, notifications, devices, auth, and supporting template endpoints
+//	@description Backend API for Memora important days, reminders, notifications, devices, auth, and tasks
 //	@version     1.0
 //	@host        localhost:8080
 //	@BasePath    /v1
@@ -29,7 +29,6 @@ import (
 func NewRouter(
 	app *fiber.App,
 	cfg *config.Config,
-	t usecase.Translation,
 	u usecase.User,
 	us usecase.UserSettings,
 	tk usecase.Task,
@@ -61,6 +60,6 @@ func NewRouter(
 	// Routers
 	apiV1Group := app.Group("/v1")
 	{
-		v1.NewRoutes(apiV1Group, t, u, us, tk, id, n, d, jwtManager, l)
+		v1.NewRoutes(apiV1Group, u, us, tk, id, n, d, jwtManager, l)
 	}
 }

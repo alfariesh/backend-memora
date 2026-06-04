@@ -4,9 +4,9 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/evrone/go-clean-template/internal/controller/restapi/v1/request"
-	_ "github.com/evrone/go-clean-template/internal/controller/restapi/v1/response" // for swaggo
-	"github.com/evrone/go-clean-template/internal/entity"
+	"github.com/alfariesh/backend-memora/internal/controller/restapi/v1/request"
+	_ "github.com/alfariesh/backend-memora/internal/controller/restapi/v1/response" // for swaggo
+	"github.com/alfariesh/backend-memora/internal/entity"
 	"github.com/gofiber/fiber/v2"
 )
 

@@ -4,8 +4,8 @@ import (
 	"math"
 	"time"
 
-	v1 "github.com/evrone/go-clean-template/docs/proto/v1"
-	"github.com/evrone/go-clean-template/internal/entity"
+	v1 "github.com/alfariesh/backend-memora/docs/proto/v1"
+	"github.com/alfariesh/backend-memora/internal/entity"
 )
 
 // NewImportantDayResponse -.

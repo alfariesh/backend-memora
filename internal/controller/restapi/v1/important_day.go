@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/evrone/go-clean-template/internal/controller/restapi/v1/request"
-	"github.com/evrone/go-clean-template/internal/controller/restapi/v1/response"
-	"github.com/evrone/go-clean-template/internal/entity"
+	"github.com/alfariesh/backend-memora/internal/controller/restapi/v1/request"
+	"github.com/alfariesh/backend-memora/internal/controller/restapi/v1/response"
+	"github.com/alfariesh/backend-memora/internal/entity"
 	"github.com/gofiber/fiber/v2"
 )
 

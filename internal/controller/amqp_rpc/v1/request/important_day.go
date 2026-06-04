@@ -1,6 +1,6 @@
 package request
 
-import "github.com/evrone/go-clean-template/internal/entity"
+import "github.com/alfariesh/backend-memora/internal/entity"
 
 // ReminderRule -.
 type ReminderRule struct {

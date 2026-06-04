@@ -1,9 +1,9 @@
 package v1
 
 import (
-	v1 "github.com/evrone/go-clean-template/docs/proto/v1"
-	"github.com/evrone/go-clean-template/internal/usecase"
-	"github.com/evrone/go-clean-template/pkg/logger"
+	v1 "github.com/alfariesh/backend-memora/docs/proto/v1"
+	"github.com/alfariesh/backend-memora/internal/usecase"
+	"github.com/alfariesh/backend-memora/pkg/logger"
 	"github.com/go-playground/validator/v10"
 )
 

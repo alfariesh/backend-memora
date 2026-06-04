@@ -1,19 +1,12 @@
 package v1
 
 import (
-	v1 "github.com/evrone/go-clean-template/docs/proto/v1"
-	"github.com/evrone/go-clean-template/internal/usecase"
-	"github.com/evrone/go-clean-template/pkg/logger"
+	v1 "github.com/alfariesh/backend-memora/docs/proto/v1"
+	"github.com/alfariesh/backend-memora/internal/usecase"
+	"github.com/alfariesh/backend-memora/pkg/logger"
 	"github.com/go-playground/validator/v10"
 	pbgrpc "google.golang.org/grpc"
 )
-
-// NewTranslationRoutes -.
-func NewTranslationRoutes(app *pbgrpc.Server, t usecase.Translation, l logger.Interface) {
-	r := &TranslationController{t: t, l: l, v: validator.New(validator.WithRequiredStructEnabled())}
-
-	v1.RegisterTranslationServer(app, r)
-}
 
 // NewAuthRoutes -.
 func NewAuthRoutes(app *pbgrpc.Server, u usecase.User, l logger.Interface) {

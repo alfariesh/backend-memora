@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"testing"
 
-	protov1 "github.com/evrone/go-clean-template/docs/proto/v1"
-	natsClient "github.com/evrone/go-clean-template/pkg/nats/nats_rpc/client"
-	rmqClient "github.com/evrone/go-clean-template/pkg/rabbitmq/rmq_rpc/client"
+	protov1 "github.com/alfariesh/backend-memora/docs/proto/v1"
+	natsClient "github.com/alfariesh/backend-memora/pkg/nats/nats_rpc/client"
+	rmqClient "github.com/alfariesh/backend-memora/pkg/rabbitmq/rmq_rpc/client"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

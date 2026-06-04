@@ -6,8 +6,8 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/evrone/go-clean-template/internal/entity"
-	"github.com/evrone/go-clean-template/pkg/postgres"
+	"github.com/alfariesh/backend-memora/internal/entity"
+	"github.com/alfariesh/backend-memora/pkg/postgres"
 )
 
 const reminderJobColumns = "id, user_id, important_day_id, reminder_rule_id, occurrence_date, offset_days, channels, scheduled_at, status, attempts, last_error, locked_until, sent_at, created_at, updated_at"

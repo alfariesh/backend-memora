@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/evrone/go-clean-template/internal/entity"
+	"github.com/alfariesh/backend-memora/internal/entity"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

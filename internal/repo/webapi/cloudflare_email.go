@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/evrone/go-clean-template/internal/entity"
+	"github.com/alfariesh/backend-memora/internal/entity"
 	"github.com/goccy/go-json"
 )
 

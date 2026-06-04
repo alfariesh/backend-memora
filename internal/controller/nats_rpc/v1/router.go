@@ -1,17 +1,16 @@
 package v1
 
 import (
-	"github.com/evrone/go-clean-template/internal/usecase"
-	"github.com/evrone/go-clean-template/pkg/jwt"
-	"github.com/evrone/go-clean-template/pkg/logger"
-	"github.com/evrone/go-clean-template/pkg/nats/nats_rpc/server"
+	"github.com/alfariesh/backend-memora/internal/usecase"
+	"github.com/alfariesh/backend-memora/pkg/jwt"
+	"github.com/alfariesh/backend-memora/pkg/logger"
+	"github.com/alfariesh/backend-memora/pkg/nats/nats_rpc/server"
 	"github.com/go-playground/validator/v10"
 )
 
 // NewRoutes -.
 func NewRoutes(
 	routes map[string]server.CallHandler,
-	t usecase.Translation,
 	u usecase.User,
 	tk usecase.Task,
 	id usecase.ImportantDay,
@@ -20,13 +19,10 @@ func NewRoutes(
 	j *jwt.Manager,
 	l logger.Interface,
 ) {
-	r := &V1{t: t, u: u, tk: tk, id: id, n: n, d: d, j: j, l: l, v: validator.New(validator.WithRequiredStructEnabled())}
+	r := &V1{u: u, tk: tk, id: id, n: n, d: d, j: j, l: l, v: validator.New(validator.WithRequiredStructEnabled())}
 
 	routes["v1.auth.register"] = r.register()
 	routes["v1.auth.login"] = r.login()
-
-	routes["v1.translation.getHistory"] = r.getHistory()
-	routes["v1.translation.translate"] = r.translate()
 
 	routes["v1.task.create"] = r.createTask()
 	routes["v1.task.get"] = r.getTask()

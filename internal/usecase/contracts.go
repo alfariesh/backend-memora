@@ -5,18 +5,12 @@ import (
 	"context"
 	"time"
 
-	"github.com/evrone/go-clean-template/internal/entity"
+	"github.com/alfariesh/backend-memora/internal/entity"
 )
 
 //go:generate mockgen -source=contracts.go -destination=./mocks_usecase_test.go -package=usecase_test
 
 type (
-	// Translation -.
-	Translation interface {
-		Translate(ctx context.Context, userID string, t entity.Translation) (entity.Translation, error)
-		History(ctx context.Context, userID string) (entity.TranslationHistory, error)
-	}
-
 	// User -.
 	User interface {
 		Register(ctx context.Context, username, email, password string) (entity.User, error)

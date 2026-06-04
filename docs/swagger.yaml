@@ -292,28 +292,6 @@ definitions:
     - TaskStatusTodo
     - TaskStatusInProgress
     - TaskStatusDone
-  entity.Translation:
-    properties:
-      destination:
-        example: en
-        type: string
-      original:
-        example: текст для перевода
-        type: string
-      source:
-        example: auto
-        type: string
-      translation:
-        example: text for translation
-        type: string
-    type: object
-  entity.TranslationHistory:
-    properties:
-      history:
-        items:
-          $ref: '#/definitions/entity.Translation'
-        type: array
-    type: object
   entity.User:
     properties:
       created_at:
@@ -603,22 +581,6 @@ definitions:
     required:
     - status
     type: object
-  v1.Translate:
-    properties:
-      destination:
-        example: en
-        type: string
-      original:
-        example: текст для перевода
-        type: string
-      source:
-        example: auto
-        type: string
-    required:
-    - destination
-    - original
-    - source
-    type: object
   v1.UnreadNotificationCount:
     properties:
       unread_count:
@@ -725,7 +687,7 @@ host: localhost:8080
 info:
   contact: {}
   description: Backend API for Memora important days, reminders, notifications, devices,
-    auth, and supporting template endpoints
+    auth, and tasks
   title: Memora API
   version: "1.0"
 paths:
@@ -1735,67 +1697,6 @@ paths:
       summary: Transition task status
       tags:
       - tasks
-  /translation/do-translate:
-    post:
-      consumes:
-      - application/json
-      description: Translate a text
-      operationId: do-translate
-      parameters:
-      - description: Set up translation
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/v1.Translate'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/entity.Translation'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/v1.Error'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/v1.Error'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/v1.Error'
-      security:
-      - BearerAuth: []
-      summary: Translate
-      tags:
-      - translation
-  /translation/history:
-    get:
-      description: Show all translation history for current user
-      operationId: history
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/entity.TranslationHistory'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/v1.Error'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/v1.Error'
-      security:
-      - BearerAuth: []
-      summary: Show history
-      tags:
-      - translation
   /user/profile:
     get:
       description: Get current user profile

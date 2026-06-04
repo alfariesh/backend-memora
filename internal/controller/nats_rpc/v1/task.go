@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/evrone/go-clean-template/internal/controller/nats_rpc/v1/request"
-	"github.com/evrone/go-clean-template/internal/controller/nats_rpc/v1/response"
-	"github.com/evrone/go-clean-template/internal/entity"
-	"github.com/evrone/go-clean-template/pkg/nats/nats_rpc/server"
+	"github.com/alfariesh/backend-memora/internal/controller/nats_rpc/v1/request"
+	"github.com/alfariesh/backend-memora/internal/controller/nats_rpc/v1/response"
+	"github.com/alfariesh/backend-memora/internal/entity"
+	"github.com/alfariesh/backend-memora/pkg/nats/nats_rpc/server"
 	"github.com/goccy/go-json"
 	"github.com/nats-io/nats.go"
 )

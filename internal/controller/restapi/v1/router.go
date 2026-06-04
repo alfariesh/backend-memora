@@ -1,10 +1,10 @@
 package v1
 
 import (
-	"github.com/evrone/go-clean-template/internal/controller/restapi/middleware"
-	"github.com/evrone/go-clean-template/internal/usecase"
-	"github.com/evrone/go-clean-template/pkg/jwt"
-	"github.com/evrone/go-clean-template/pkg/logger"
+	"github.com/alfariesh/backend-memora/internal/controller/restapi/middleware"
+	"github.com/alfariesh/backend-memora/internal/usecase"
+	"github.com/alfariesh/backend-memora/pkg/jwt"
+	"github.com/alfariesh/backend-memora/pkg/logger"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 )
@@ -12,7 +12,6 @@ import (
 // NewRoutes -.
 func NewRoutes(
 	apiV1Group fiber.Router,
-	t usecase.Translation,
 	u usecase.User,
 	us usecase.UserSettings,
 	tk usecase.Task,
@@ -22,7 +21,7 @@ func NewRoutes(
 	jwtManager *jwt.Manager,
 	l logger.Interface,
 ) {
-	r := &V1{t: t, u: u, us: us, tk: tk, id: id, n: n, d: d, l: l, v: validator.New(validator.WithRequiredStructEnabled())}
+	r := &V1{u: u, us: us, tk: tk, id: id, n: n, d: d, l: l, v: validator.New(validator.WithRequiredStructEnabled())}
 
 	// Public routes
 	authGroup := apiV1Group.Group("/auth")
@@ -51,12 +50,6 @@ func NewRoutes(
 		taskGroup.Put("/:id", r.updateTask)
 		taskGroup.Patch("/:id/status", r.transitionTask)
 		taskGroup.Delete("/:id", r.deleteTask)
-	}
-
-	translationGroup := protected.Group("/translation")
-	{
-		translationGroup.Get("/history", r.history)
-		translationGroup.Post("/do-translate", r.doTranslate)
 	}
 
 	mobileGroup := protected.Group("/mobile")

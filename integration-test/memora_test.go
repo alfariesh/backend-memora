@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	protov1 "github.com/evrone/go-clean-template/docs/proto/v1"
-	"github.com/evrone/go-clean-template/internal/entity"
-	"github.com/evrone/go-clean-template/internal/repo/persistent"
+	protov1 "github.com/alfariesh/backend-memora/docs/proto/v1"
+	"github.com/alfariesh/backend-memora/internal/entity"
+	"github.com/alfariesh/backend-memora/internal/repo/persistent"
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
