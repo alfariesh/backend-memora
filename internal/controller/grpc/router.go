@@ -12,7 +12,6 @@ import (
 func NewRouter(
 	app *pbgrpc.Server,
 	u usecase.User,
-	tk usecase.Task,
 	id usecase.ImportantDay,
 	n usecase.Notification,
 	d usecase.DeviceToken,
@@ -20,7 +19,6 @@ func NewRouter(
 ) {
 	{
 		v1.NewAuthRoutes(app, u, l)
-		v1.NewTaskRoutes(app, tk, l)
 		v1.NewImportantDayRoutes(app, id, l)
 		v1.NewNotificationRoutes(app, n, l)
 		v1.NewDeviceRoutes(app, d, l)

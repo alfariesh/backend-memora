@@ -19,7 +19,7 @@ import (
 // Swagger spec:
 //
 //	@title       Memora API
-//	@description Backend API for Memora important days, reminders, notifications, devices, auth, and tasks
+//	@description Backend API for Memora important days, reminders, notifications, devices, and auth
 //	@version     1.0
 //	@host        localhost:8080
 //	@BasePath    /v1
@@ -31,7 +31,6 @@ func NewRouter(
 	cfg *config.Config,
 	u usecase.User,
 	us usecase.UserSettings,
-	tk usecase.Task,
 	id usecase.ImportantDay,
 	n usecase.Notification,
 	d usecase.DeviceToken,
@@ -60,6 +59,6 @@ func NewRouter(
 	// Routers
 	apiV1Group := app.Group("/v1")
 	{
-		v1.NewRoutes(apiV1Group, u, us, tk, id, n, d, jwtManager, l)
+		v1.NewRoutes(apiV1Group, u, us, id, n, d, jwtManager, l)
 	}
 }

@@ -73,7 +73,7 @@ func TestAuthInterceptor_MissingMetadata(t *testing.T) {
 
 	jwtMgr := newJWTManager(t)
 	interceptor := grpcmw.AuthInterceptor(jwtMgr)
-	info := &grpc.UnaryServerInfo{FullMethod: "/grpc.v1.TaskService/GetTask"}
+	info := &grpc.UnaryServerInfo{FullMethod: "/grpc.v1.ImportantDayService/GetImportantDay"}
 
 	capture := &ctxCapture{}
 
@@ -93,7 +93,7 @@ func TestAuthInterceptor_MissingAuthorizationToken(t *testing.T) {
 
 	jwtMgr := newJWTManager(t)
 	interceptor := grpcmw.AuthInterceptor(jwtMgr)
-	info := &grpc.UnaryServerInfo{FullMethod: "/grpc.v1.TaskService/GetTask"}
+	info := &grpc.UnaryServerInfo{FullMethod: "/grpc.v1.ImportantDayService/GetImportantDay"}
 
 	md := metadata.New(map[string]string{"other-key": "value"})
 	ctx := metadata.NewIncomingContext(t.Context(), md)
@@ -116,7 +116,7 @@ func TestAuthInterceptor_InvalidToken(t *testing.T) {
 
 	jwtMgr := newJWTManager(t)
 	interceptor := grpcmw.AuthInterceptor(jwtMgr)
-	info := &grpc.UnaryServerInfo{FullMethod: "/grpc.v1.TaskService/GetTask"}
+	info := &grpc.UnaryServerInfo{FullMethod: "/grpc.v1.ImportantDayService/GetImportantDay"}
 
 	md := metadata.Pairs("authorization", "invalid-token")
 	ctx := metadata.NewIncomingContext(t.Context(), md)
@@ -139,7 +139,7 @@ func TestAuthInterceptor_ValidToken(t *testing.T) {
 
 	jwtMgr := newJWTManager(t)
 	interceptor := grpcmw.AuthInterceptor(jwtMgr)
-	info := &grpc.UnaryServerInfo{FullMethod: "/grpc.v1.TaskService/GetTask"}
+	info := &grpc.UnaryServerInfo{FullMethod: "/grpc.v1.ImportantDayService/GetImportantDay"}
 
 	token, err := jwtMgr.GenerateToken("user-id-123")
 	require.NoError(t, err)
@@ -164,7 +164,7 @@ func TestUserIDFromContext_WithValue(t *testing.T) {
 
 	jwtMgr := newJWTManager(t)
 	interceptor := grpcmw.AuthInterceptor(jwtMgr)
-	info := &grpc.UnaryServerInfo{FullMethod: "/grpc.v1.TaskService/GetTask"}
+	info := &grpc.UnaryServerInfo{FullMethod: "/grpc.v1.ImportantDayService/GetImportantDay"}
 
 	token, err := jwtMgr.GenerateToken("user-42")
 	require.NoError(t, err)

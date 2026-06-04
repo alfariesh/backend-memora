@@ -15,13 +15,6 @@ func NewAuthRoutes(app *pbgrpc.Server, u usecase.User, l logger.Interface) {
 	v1.RegisterAuthServiceServer(app, r)
 }
 
-// NewTaskRoutes -.
-func NewTaskRoutes(app *pbgrpc.Server, tk usecase.Task, l logger.Interface) {
-	r := &TaskController{tk: tk, l: l, v: validator.New(validator.WithRequiredStructEnabled())}
-
-	v1.RegisterTaskServiceServer(app, r)
-}
-
 // NewImportantDayRoutes -.
 func NewImportantDayRoutes(app *pbgrpc.Server, id usecase.ImportantDay, l logger.Interface) {
 	r := &ImportantDayController{id: id, l: l, v: validator.New(validator.WithRequiredStructEnabled())}

@@ -14,14 +14,13 @@ func NewRoutes(
 	apiV1Group fiber.Router,
 	u usecase.User,
 	us usecase.UserSettings,
-	tk usecase.Task,
 	id usecase.ImportantDay,
 	n usecase.Notification,
 	d usecase.DeviceToken,
 	jwtManager *jwt.Manager,
 	l logger.Interface,
 ) {
-	r := &V1{u: u, us: us, tk: tk, id: id, n: n, d: d, l: l, v: validator.New(validator.WithRequiredStructEnabled())}
+	r := &V1{u: u, us: us, id: id, n: n, d: d, l: l, v: validator.New(validator.WithRequiredStructEnabled())}
 
 	// Public routes
 	authGroup := apiV1Group.Group("/auth")
@@ -40,16 +39,6 @@ func NewRoutes(
 		userGroup.Get("/profile", r.profile)
 		userGroup.Get("/settings", r.getUserSettings)
 		userGroup.Put("/settings", r.updateUserSettings)
-	}
-
-	taskGroup := protected.Group("/tasks")
-	{
-		taskGroup.Post("/", r.createTask)
-		taskGroup.Get("/", r.listTasks)
-		taskGroup.Get("/:id", r.getTask)
-		taskGroup.Put("/:id", r.updateTask)
-		taskGroup.Patch("/:id/status", r.transitionTask)
-		taskGroup.Delete("/:id", r.deleteTask)
 	}
 
 	mobileGroup := protected.Group("/mobile")

@@ -11,7 +11,6 @@ import (
 // NewRouter -.
 func NewRouter(
 	u usecase.User,
-	tk usecase.Task,
 	id usecase.ImportantDay,
 	n usecase.Notification,
 	d usecase.DeviceToken,
@@ -21,7 +20,7 @@ func NewRouter(
 	routes := make(map[string]server.CallHandler)
 
 	{
-		v1.NewRoutes(routes, u, tk, id, n, d, j, l)
+		v1.NewRoutes(routes, u, id, n, d, j, l)
 	}
 
 	return routes

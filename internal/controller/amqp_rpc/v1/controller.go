@@ -10,7 +10,6 @@ import (
 // V1 -.
 type V1 struct {
 	u  usecase.User
-	tk usecase.Task
 	id usecase.ImportantDay
 	n  usecase.Notification
 	d  usecase.DeviceToken

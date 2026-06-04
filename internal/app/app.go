@@ -19,7 +19,6 @@ import (
 	"github.com/alfariesh/backend-memora/internal/usecase/importantday"
 	"github.com/alfariesh/backend-memora/internal/usecase/notification"
 	"github.com/alfariesh/backend-memora/internal/usecase/reminder"
-	"github.com/alfariesh/backend-memora/internal/usecase/task"
 	"github.com/alfariesh/backend-memora/internal/usecase/user"
 	"github.com/alfariesh/backend-memora/internal/usecase/usersettings"
 	"github.com/alfariesh/backend-memora/pkg/grpcserver"
@@ -35,7 +34,6 @@ import (
 type useCases struct {
 	user         *user.UseCase
 	userSettings *usersettings.UseCase
-	task         *task.UseCase
 	importantDay *importantday.UseCase
 	notification *notification.UseCase
 	device       *device.UseCase
@@ -53,7 +51,6 @@ func initUseCases(cfg *config.Config, pg *postgres.Postgres, jwtManager *jwt.Man
 	userRepo := persistent.NewUserRepo(pg)
 	userSessionRepo := persistent.NewUserSessionRepo(pg)
 	userSettingsRepo := persistent.NewUserSettingsRepo(pg)
-	taskRepo := persistent.NewTaskRepo(pg)
 	importantDayRepo := persistent.NewImportantDayRepo(pg)
 	reminderRuleRepo := persistent.NewReminderRuleRepo(pg)
 	reminderJobRepo := persistent.NewReminderJobRepo(pg)
@@ -65,7 +62,6 @@ func initUseCases(cfg *config.Config, pg *postgres.Postgres, jwtManager *jwt.Man
 	return useCases{
 		user:         user.New(userRepo, jwtManager, user.SessionRepo(userSessionRepo), user.RefreshTokenTTL(cfg.JWT.RefreshTokenExpiry)),
 		userSettings: usersettings.New(userSettingsRepo),
-		task:         task.New(taskRepo),
 		importantDay: importantday.New(importantDayRepo, reminderRuleRepo, reminderJobRepo, userSettingsRepo),
 		notification: notification.New(notificationRepo),
 		device:       device.New(deviceTokenRepo, device.PushSender(pushSender)),
@@ -84,7 +80,7 @@ func initUseCases(cfg *config.Config, pg *postgres.Postgres, jwtManager *jwt.Man
 
 func initServers(cfg *config.Config, uc useCases, jwtManager *jwt.Manager, l logger.Interface) servers {
 	// RabbitMQ RPC Server
-	rmqRouter := amqprpc.NewRouter(uc.user, uc.task, uc.importantDay, uc.notification, uc.device, jwtManager, l)
+	rmqRouter := amqprpc.NewRouter(uc.user, uc.importantDay, uc.notification, uc.device, jwtManager, l)
 
 	rmqServer, err := rmqRPCServer.New(cfg.RMQ.URL, cfg.RMQ.ServerExchange, rmqRouter, l)
 	if err != nil {
@@ -92,7 +88,7 @@ func initServers(cfg *config.Config, uc useCases, jwtManager *jwt.Manager, l log
 	}
 
 	// NATS RPC Server
-	natsRouter := natsrpc.NewRouter(uc.user, uc.task, uc.importantDay, uc.notification, uc.device, jwtManager, l)
+	natsRouter := natsrpc.NewRouter(uc.user, uc.importantDay, uc.notification, uc.device, jwtManager, l)
 
 	natsServer, err := natsRPCServer.New(cfg.NATS.URL, cfg.NATS.ServerExchange, natsRouter, l)
 	if err != nil {
@@ -104,11 +100,11 @@ func initServers(cfg *config.Config, uc useCases, jwtManager *jwt.Manager, l log
 		grpcserver.Port(cfg.GRPC.Port),
 		grpcserver.ServerOptions(pbgrpc.UnaryInterceptor(grpcmw.AuthInterceptor(jwtManager))),
 	)
-	grpc.NewRouter(grpcServer.App, uc.user, uc.task, uc.importantDay, uc.notification, uc.device, l)
+	grpc.NewRouter(grpcServer.App, uc.user, uc.importantDay, uc.notification, uc.device, l)
 
 	// HTTP Server
 	httpServer := httpserver.New(l, httpserver.Port(cfg.HTTP.Port), httpserver.Prefork(cfg.HTTP.UsePreforkMode))
-	restapi.NewRouter(httpServer.App, cfg, uc.user, uc.userSettings, uc.task, uc.importantDay, uc.notification, uc.device, jwtManager, l)
+	restapi.NewRouter(httpServer.App, cfg, uc.user, uc.userSettings, uc.importantDay, uc.notification, uc.device, jwtManager, l)
 
 	return servers{
 		rmq:  rmqServer,

@@ -31,22 +31,6 @@ type (
 		RevokeByRefreshTokenHash(ctx context.Context, refreshTokenHash string, at time.Time) error
 	}
 
-	// TaskRepo -.
-	TaskRepo interface {
-		Store(ctx context.Context, task *entity.Task) error
-		GetByID(ctx context.Context, userID, taskID string) (entity.Task, error)
-		List(ctx context.Context, userID string, filter TaskFilter) ([]entity.Task, int, error)
-		Update(ctx context.Context, task *entity.Task) error
-		Delete(ctx context.Context, userID, taskID string) error
-	}
-
-	// TaskFilter -.
-	TaskFilter struct {
-		Status *entity.TaskStatus
-		Limit  uint64
-		Offset uint64
-	}
-
 	// ImportantDayRepo -.
 	ImportantDayRepo interface {
 		Store(ctx context.Context, day *entity.ImportantDay) error

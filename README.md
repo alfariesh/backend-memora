@@ -1,6 +1,6 @@
 # Memora Backend
 
-Backend API for Memora: authentication, tasks, important days, reminder rules, notifications, device tokens, and reminder delivery workers.
+Backend API for Memora: authentication, important days, reminder rules, notifications, device tokens, and reminder delivery workers.
 
 ## Stack
 

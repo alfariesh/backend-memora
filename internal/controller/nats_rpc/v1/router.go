@@ -12,24 +12,16 @@ import (
 func NewRoutes(
 	routes map[string]server.CallHandler,
 	u usecase.User,
-	tk usecase.Task,
 	id usecase.ImportantDay,
 	n usecase.Notification,
 	d usecase.DeviceToken,
 	j *jwt.Manager,
 	l logger.Interface,
 ) {
-	r := &V1{u: u, tk: tk, id: id, n: n, d: d, j: j, l: l, v: validator.New(validator.WithRequiredStructEnabled())}
+	r := &V1{u: u, id: id, n: n, d: d, j: j, l: l, v: validator.New(validator.WithRequiredStructEnabled())}
 
 	routes["v1.auth.register"] = r.register()
 	routes["v1.auth.login"] = r.login()
-
-	routes["v1.task.create"] = r.createTask()
-	routes["v1.task.get"] = r.getTask()
-	routes["v1.task.list"] = r.listTasks()
-	routes["v1.task.update"] = r.updateTask()
-	routes["v1.task.transition"] = r.transitionTask()
-	routes["v1.task.delete"] = r.deleteTask()
 
 	routes["v1.important_day.create"] = r.createImportantDay()
 	routes["v1.important_day.get"] = r.getImportantDay()
