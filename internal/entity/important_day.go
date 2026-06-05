@@ -160,6 +160,7 @@ const (
 	ReminderJobStatusPending ReminderJobStatus = "pending"
 	ReminderJobStatusSent    ReminderJobStatus = "sent"
 	ReminderJobStatusFailed  ReminderJobStatus = "failed"
+	ReminderJobStatusSkipped ReminderJobStatus = "skipped"
 )
 
 // ReminderJob -.
@@ -170,7 +171,7 @@ type ReminderJob struct {
 	ReminderRuleID *string           `json:"reminder_rule_id"`
 	OccurrenceDate time.Time         `json:"occurrence_date"`
 	OffsetDays     int               `json:"offset_days"`
-	Channels       []ReminderChannel `json:"channels"`
+	Channel        ReminderChannel   `json:"channel"`
 	ScheduledAt    time.Time         `json:"scheduled_at"`
 	Status         ReminderJobStatus `json:"status"`
 	Attempts       int               `json:"attempts"`
@@ -190,6 +191,7 @@ type Notification struct {
 	Title          string     `json:"title"            example:"Mom birthday is coming"`
 	Body           string     `json:"body"             example:"Mom birthday is in 7 days."`
 	Data           string     `json:"data"             example:"{}"`
+	DedupeKey      string     `json:"-"`
 	ReadAt         *time.Time `json:"read_at"`
 	CreatedAt      time.Time  `json:"created_at"       example:"2026-01-01T00:00:00Z"`
 } // @name entity.Notification

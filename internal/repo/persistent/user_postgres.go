@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/alfariesh/backend-memora/internal/entity"
@@ -54,6 +55,57 @@ func (r *UserRepo) GetByID(ctx context.Context, id string) (entity.User, error) 
 // GetByEmail -.
 func (r *UserRepo) GetByEmail(ctx context.Context, email string) (entity.User, error) {
 	return r.getUser(ctx, "email", email)
+}
+
+// UpdatePasswordAndReplaceSessions updates the user password and replaces active sessions atomically.
+func (r *UserRepo) UpdatePasswordAndReplaceSessions(
+	ctx context.Context,
+	userID,
+	passwordHash string,
+	at time.Time,
+	session *entity.UserSession,
+) (err error) {
+	tx, err := r.Pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("UserRepo - UpdatePasswordAndReplaceSessions - Begin: %w", err)
+	}
+	defer rollbackTx(ctx, tx, &err, "UserRepo - UpdatePasswordAndReplaceSessions - Rollback")
+
+	sql, args, err := r.Builder.
+		Update("users").
+		Set("password_hash", passwordHash).
+		Set("updated_at", at).
+		Where(sq.Eq{"id": userID}).
+		ToSql()
+	if err != nil {
+		return fmt.Errorf("UserRepo - UpdatePasswordAndReplaceSessions - builder: %w", err)
+	}
+
+	result, err := tx.Exec(ctx, sql, args...)
+	if err != nil {
+		return fmt.Errorf("UserRepo - UpdatePasswordAndReplaceSessions - update: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return entity.ErrUserNotFound
+	}
+
+	if err = revokeAllUserSessionsTx(ctx, r.Builder, tx, userID, at, "password_changed"); err != nil {
+		return fmt.Errorf("UserRepo - UpdatePasswordAndReplaceSessions - revokeAllUserSessionsTx: %w", err)
+	}
+
+	if session != nil {
+		session.UserID = userID
+		if err = insertUserSession(ctx, r.Builder, tx, session); err != nil {
+			return fmt.Errorf("UserRepo - UpdatePasswordAndReplaceSessions - insertUserSession: %w", err)
+		}
+	}
+
+	if err = tx.Commit(ctx); err != nil {
+		return fmt.Errorf("UserRepo - UpdatePasswordAndReplaceSessions - Commit: %w", err)
+	}
+
+	return nil
 }
 
 func (r *UserRepo) getUser(ctx context.Context, column, value string) (entity.User, error) {

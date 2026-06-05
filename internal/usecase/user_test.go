@@ -2,6 +2,7 @@ package usecase_test
 
 import (
 	"context"
+	"encoding/base64"
 	"strings"
 	"testing"
 	"time"
@@ -25,6 +26,19 @@ func newUserUseCase(t *testing.T) (*user.UseCase, *MockUserRepo) {
 	useCase := user.New(repo, jwtManager)
 
 	return useCase, repo
+}
+
+func newUserUseCaseWithSession(t *testing.T) (*user.UseCase, *MockUserRepo, *MockUserSessionRepo) {
+	t.Helper()
+
+	ctrl := gomock.NewController(t)
+
+	repo := NewMockUserRepo(ctrl)
+	sessionRepo := NewMockUserSessionRepo(ctrl)
+	jwtManager := jwt.New("test-secret", time.Hour)
+	useCase := user.New(repo, jwtManager, user.SessionRepo(sessionRepo), user.RefreshTokenTTL(time.Hour))
+
+	return useCase, repo, sessionRepo
 }
 
 func TestRegister(t *testing.T) {
@@ -120,7 +134,7 @@ func TestLogin(t *testing.T) {
 		}
 		repo.EXPECT().GetByEmail(context.Background(), "test@example.com").Return(storedUser, nil)
 
-		tokens, err := uc.Login(context.Background(), "test@example.com", "password123")
+		tokens, err := uc.Login(context.Background(), "test@example.com", "password123", entity.SessionMetadata{})
 
 		require.NoError(t, err)
 		assert.NotEmpty(t, tokens.Token)
@@ -143,7 +157,7 @@ func TestLogin(t *testing.T) {
 		}
 		repo.EXPECT().GetByEmail(context.Background(), "test@example.com").Return(storedUser, nil)
 
-		tokens, err := uc.Login(context.Background(), "test@example.com", "wrongpassword")
+		tokens, err := uc.Login(context.Background(), "test@example.com", "wrongpassword", entity.SessionMetadata{})
 
 		require.ErrorIs(t, err, entity.ErrInvalidCredentials)
 		assert.Empty(t, tokens.Token)
@@ -157,7 +171,7 @@ func TestLogin(t *testing.T) {
 		uc, repo := newUserUseCase(t)
 		repo.EXPECT().GetByEmail(context.Background(), "notfound@example.com").Return(entity.User{}, entity.ErrUserNotFound)
 
-		tokens, err := uc.Login(context.Background(), "notfound@example.com", "password123")
+		tokens, err := uc.Login(context.Background(), "notfound@example.com", "password123", entity.SessionMetadata{})
 
 		require.ErrorIs(t, err, entity.ErrInvalidCredentials)
 		assert.Empty(t, tokens.Token)
@@ -179,7 +193,7 @@ func TestLogin_NormalizesEmail(t *testing.T) {
 	}
 	repo.EXPECT().GetByEmail(context.Background(), "test@example.com").Return(storedUser, nil)
 
-	tokens, err := uc.Login(context.Background(), " Test@Example.COM ", "password123")
+	tokens, err := uc.Login(context.Background(), " Test@Example.COM ", "password123", entity.SessionMetadata{})
 
 	require.NoError(t, err)
 	assert.NotEmpty(t, tokens.AccessToken)
@@ -206,12 +220,231 @@ func TestLogin_Validation(t *testing.T) {
 
 			uc, _ := newUserUseCase(t)
 
-			tokens, err := uc.Login(context.Background(), localTc.email, localTc.password)
+			tokens, err := uc.Login(context.Background(), localTc.email, localTc.password, entity.SessionMetadata{})
 
 			require.ErrorIs(t, err, entity.ErrInvalidUserInput)
 			assert.Empty(t, tokens.AccessToken)
 		})
 	}
+}
+
+func TestLogin_CreatesRefreshSessionWithMetadata(t *testing.T) {
+	t.Parallel()
+
+	uc, repo, sessionRepo := newUserUseCaseWithSession(t)
+	hash, err := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
+	require.NoError(t, err)
+
+	storedUser := entity.User{
+		ID: "user-id-123", Username: "testuser",
+		Email: "test@example.com", PasswordHash: string(hash),
+	}
+	repo.EXPECT().GetByEmail(context.Background(), "test@example.com").Return(storedUser, nil)
+	sessionRepo.EXPECT().Store(context.Background(), gomock.Any()).DoAndReturn(func(_ context.Context, session *entity.UserSession) error {
+		assert.Equal(t, "user-id-123", session.UserID)
+		assert.Len(t, session.RefreshTokenHash, 64)
+		assert.Equal(t, "127.0.0.1", session.CreatedIP)
+		assert.Len(t, session.CreatedUserAgent, entity.MaxSessionUserAgentSize)
+		assert.True(t, session.ExpiresAt.After(session.CreatedAt))
+
+		return nil
+	})
+
+	tokens, err := uc.Login(context.Background(), "test@example.com", "password123", entity.SessionMetadata{
+		IP:        " 127.0.0.1 ",
+		UserAgent: strings.Repeat("a", entity.MaxSessionUserAgentSize+10),
+	})
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, tokens.AccessToken)
+	assert.True(t, entity.ValidRefreshToken(tokens.RefreshToken))
+}
+
+func TestLoginAccessOnly_DoesNotStoreRefreshSession(t *testing.T) {
+	t.Parallel()
+
+	uc, repo, _ := newUserUseCaseWithSession(t)
+	hash, err := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
+	require.NoError(t, err)
+
+	storedUser := entity.User{
+		ID: "user-id-123", Username: "testuser",
+		Email: "test@example.com", PasswordHash: string(hash),
+	}
+	repo.EXPECT().GetByEmail(context.Background(), "test@example.com").Return(storedUser, nil)
+
+	tokens, err := uc.LoginAccessOnly(context.Background(), "test@example.com", "password123")
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, tokens.AccessToken)
+	assert.Empty(t, tokens.RefreshToken)
+}
+
+func TestRefresh_RotatesRefreshToken(t *testing.T) {
+	t.Parallel()
+
+	uc, _, sessionRepo := newUserUseCaseWithSession(t)
+	refreshToken := testRefreshToken()
+
+	sessionRepo.EXPECT().
+		Rotate(context.Background(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, refreshTokenHash string, _ time.Time, nextSession entity.UserSession) (entity.UserSession, error) {
+			assert.Len(t, refreshTokenHash, 64)
+			assert.Empty(t, nextSession.UserID)
+			assert.Len(t, nextSession.RefreshTokenHash, 64)
+			assert.Equal(t, "127.0.0.1", nextSession.CreatedIP)
+			assert.Equal(t, "Memora/1.0", nextSession.CreatedUserAgent)
+
+			nextSession.UserID = "user-id-123"
+			return nextSession, nil
+		})
+
+	tokens, err := uc.Refresh(context.Background(), refreshToken, entity.SessionMetadata{
+		IP:        "127.0.0.1",
+		UserAgent: "Memora/1.0",
+	})
+
+	require.NoError(t, err)
+	assert.NotEmpty(t, tokens.AccessToken)
+	assert.True(t, entity.ValidRefreshToken(tokens.RefreshToken))
+	assert.NotEqual(t, refreshToken, tokens.RefreshToken)
+}
+
+func TestRefresh_InvalidAndReusedTokens(t *testing.T) {
+	t.Parallel()
+
+	t.Run("malformed token", func(t *testing.T) {
+		t.Parallel()
+
+		uc, _, _ := newUserUseCaseWithSession(t)
+
+		tokens, err := uc.Refresh(context.Background(), "bad-token", entity.SessionMetadata{})
+
+		require.ErrorIs(t, err, entity.ErrInvalidRefreshToken)
+		assert.Empty(t, tokens.AccessToken)
+	})
+
+	t.Run("reuse bubbles reuse error", func(t *testing.T) {
+		t.Parallel()
+
+		uc, _, sessionRepo := newUserUseCaseWithSession(t)
+		sessionRepo.EXPECT().
+			Rotate(context.Background(), gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(entity.UserSession{}, entity.ErrRefreshTokenReuse)
+
+		tokens, err := uc.Refresh(context.Background(), testRefreshToken(), entity.SessionMetadata{})
+
+		require.ErrorIs(t, err, entity.ErrRefreshTokenReuse)
+		assert.Empty(t, tokens.AccessToken)
+	})
+}
+
+func TestSessionManagement(t *testing.T) {
+	t.Parallel()
+
+	t.Run("list sessions", func(t *testing.T) {
+		t.Parallel()
+
+		uc, _, sessionRepo := newUserUseCaseWithSession(t)
+		sessionRepo.EXPECT().
+			ListActiveByUserID(context.Background(), "user-id-123", gomock.Any()).
+			Return([]entity.UserSession{{ID: "session-id-1"}}, nil)
+
+		sessions, err := uc.ListSessions(context.Background(), "user-id-123")
+
+		require.NoError(t, err)
+		require.Len(t, sessions, 1)
+		assert.Equal(t, "session-id-1", sessions[0].ID)
+	})
+
+	t.Run("revoke session", func(t *testing.T) {
+		t.Parallel()
+
+		uc, _, sessionRepo := newUserUseCaseWithSession(t)
+		sessionRepo.EXPECT().
+			RevokeByID(context.Background(), "user-id-123", "session-id-1", gomock.Any(), "user_revoked").
+			Return(nil)
+
+		err := uc.RevokeSession(context.Background(), "user-id-123", "session-id-1")
+
+		require.NoError(t, err)
+	})
+
+	t.Run("logout all", func(t *testing.T) {
+		t.Parallel()
+
+		uc, _, sessionRepo := newUserUseCaseWithSession(t)
+		sessionRepo.EXPECT().
+			RevokeAllByUserID(context.Background(), "user-id-123", gomock.Any(), "logout_all").
+			Return(nil)
+
+		err := uc.LogoutAll(context.Background(), "user-id-123")
+
+		require.NoError(t, err)
+	})
+}
+
+func TestChangePassword(t *testing.T) {
+	t.Parallel()
+
+	t.Run("success returns new tokens and session", func(t *testing.T) {
+		t.Parallel()
+
+		uc, repo, _ := newUserUseCaseWithSession(t)
+		hash, err := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
+		require.NoError(t, err)
+
+		repo.EXPECT().GetByID(context.Background(), "user-id-123").Return(entity.User{
+			ID:           "user-id-123",
+			PasswordHash: string(hash),
+		}, nil)
+		repo.EXPECT().
+			UpdatePasswordAndReplaceSessions(context.Background(), "user-id-123", gomock.Any(), gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, _ string, passwordHash string, _ time.Time, session *entity.UserSession) error {
+				require.NoError(t, bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte("newpassword123")))
+				require.NotNil(t, session)
+				assert.Equal(t, "user-id-123", session.UserID)
+				assert.Equal(t, "127.0.0.1", session.CreatedIP)
+
+				return nil
+			})
+
+		tokens, err := uc.ChangePassword(
+			context.Background(),
+			"user-id-123",
+			"password123",
+			"newpassword123",
+			entity.SessionMetadata{IP: "127.0.0.1"},
+		)
+
+		require.NoError(t, err)
+		assert.NotEmpty(t, tokens.AccessToken)
+		assert.True(t, entity.ValidRefreshToken(tokens.RefreshToken))
+	})
+
+	t.Run("wrong current password is generic", func(t *testing.T) {
+		t.Parallel()
+
+		uc, repo, _ := newUserUseCaseWithSession(t)
+		hash, err := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
+		require.NoError(t, err)
+
+		repo.EXPECT().GetByID(context.Background(), "user-id-123").Return(entity.User{
+			ID:           "user-id-123",
+			PasswordHash: string(hash),
+		}, nil)
+
+		tokens, err := uc.ChangePassword(
+			context.Background(),
+			"user-id-123",
+			"wrongpassword",
+			"newpassword123",
+			entity.SessionMetadata{},
+		)
+
+		require.ErrorIs(t, err, entity.ErrInvalidCredentials)
+		assert.Empty(t, tokens.AccessToken)
+	})
 }
 
 func TestGetUser(t *testing.T) {
@@ -245,6 +478,15 @@ func TestGetUser(t *testing.T) {
 
 		require.ErrorIs(t, err, entity.ErrUserNotFound)
 	})
+}
+
+func testRefreshToken() string {
+	b := make([]byte, entity.RefreshTokenBytes)
+	for i := range b {
+		b[i] = byte(i + 1)
+	}
+
+	return base64.RawURLEncoding.EncodeToString(b)
 }
 
 func TestGetUser_GenericError(t *testing.T) {

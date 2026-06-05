@@ -16,6 +16,7 @@ type (
 		Store(ctx context.Context, user *entity.User) error
 		GetByID(ctx context.Context, id string) (entity.User, error)
 		GetByEmail(ctx context.Context, email string) (entity.User, error)
+		UpdatePasswordAndReplaceSessions(ctx context.Context, userID, passwordHash string, at time.Time, session *entity.UserSession) error
 	}
 
 	// UserSettingsRepo -.
@@ -27,8 +28,11 @@ type (
 	// UserSessionRepo -.
 	UserSessionRepo interface {
 		Store(ctx context.Context, session *entity.UserSession) error
-		GetActiveByRefreshTokenHash(ctx context.Context, refreshTokenHash string, now time.Time) (entity.UserSession, error)
-		RevokeByRefreshTokenHash(ctx context.Context, refreshTokenHash string, at time.Time) error
+		Rotate(ctx context.Context, refreshTokenHash string, now time.Time, nextSession entity.UserSession) (entity.UserSession, error)
+		RevokeByRefreshTokenHash(ctx context.Context, refreshTokenHash string, at time.Time, reason string) error
+		ListActiveByUserID(ctx context.Context, userID string, now time.Time) ([]entity.UserSession, error)
+		RevokeByID(ctx context.Context, userID, id string, at time.Time, reason string) error
+		RevokeAllByUserID(ctx context.Context, userID string, at time.Time, reason string) error
 	}
 
 	// ImportantDayRepo -.
@@ -51,7 +55,7 @@ type (
 		Store(ctx context.Context, job *entity.ReminderJob) error
 		ReplacePendingForImportantDay(ctx context.Context, userID, importantDayID string, jobs []entity.ReminderJob) error
 		ClaimDue(ctx context.Context, now time.Time, limit int) ([]entity.ReminderJob, error)
-		MarkSent(ctx context.Context, id string, sentAt time.Time) error
+		FinishWithNext(ctx context.Context, id string, status entity.ReminderJobStatus, finishedAt time.Time, lastError string, nextJob entity.ReminderJob) error
 		MarkFailed(ctx context.Context, id, reason string, retry bool) error
 	}
 

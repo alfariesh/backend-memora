@@ -46,9 +46,17 @@ func NewRoutes(
 	// Protected routes
 	protected := apiV1Group.Group("", middleware.Auth(jwtManager))
 
+	authProtectedGroup := protected.Group("/auth")
+	{
+		authProtectedGroup.Get("/sessions", r.listSessions)
+		authProtectedGroup.Delete("/sessions/:id", r.revokeSession)
+		authProtectedGroup.Post("/logout-all", r.logoutAll)
+	}
+
 	userGroup := protected.Group("/user")
 	{
 		userGroup.Get("/profile", r.profile)
+		userGroup.Post("/password", r.changePassword)
 		userGroup.Get("/settings", r.getUserSettings)
 		userGroup.Put("/settings", r.updateUserSettings)
 	}

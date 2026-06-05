@@ -52,7 +52,7 @@ func (r *V1) login() server.CallHandler {
 			return nil, fmt.Errorf("amqp_rpc - V1 - login - validation: %w", err)
 		}
 
-		tokens, err := r.u.Login(context.Background(), req.Email, req.Password)
+		tokens, err := r.u.LoginAccessOnly(context.Background(), req.Email, req.Password)
 		if err != nil {
 			r.l.Error(err, "amqp_rpc - V1 - login")
 

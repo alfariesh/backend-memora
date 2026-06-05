@@ -14,9 +14,14 @@ type (
 	// User -.
 	User interface {
 		Register(ctx context.Context, username, email, password string) (entity.User, error)
-		Login(ctx context.Context, email, password string) (entity.AuthTokens, error)
-		Refresh(ctx context.Context, refreshToken string) (entity.AuthTokens, error)
+		Login(ctx context.Context, email, password string, metadata entity.SessionMetadata) (entity.AuthTokens, error)
+		LoginAccessOnly(ctx context.Context, email, password string) (entity.AuthTokens, error)
+		Refresh(ctx context.Context, refreshToken string, metadata entity.SessionMetadata) (entity.AuthTokens, error)
 		Logout(ctx context.Context, refreshToken string) error
+		ListSessions(ctx context.Context, userID string) ([]entity.UserSessionView, error)
+		RevokeSession(ctx context.Context, userID, sessionID string) error
+		LogoutAll(ctx context.Context, userID string) error
+		ChangePassword(ctx context.Context, userID, currentPassword, newPassword string, metadata entity.SessionMetadata) (entity.AuthTokens, error)
 		GetUser(ctx context.Context, userID string) (entity.User, error)
 	}
 

@@ -53,7 +53,13 @@ func New(url string, opts ...Option) (*Postgres, error) {
 	for pg.connAttempts > 0 {
 		pg.Pool, err = pgxpool.NewWithConfig(context.Background(), poolConfig)
 		if err == nil {
-			break
+			err = pg.Pool.Ping(context.Background())
+			if err == nil {
+				break
+			}
+
+			pg.Pool.Close()
+			pg.Pool = nil
 		}
 
 		log.Printf("Postgres is trying to connect, attempts left: %d", pg.connAttempts)
@@ -78,7 +84,13 @@ func (p *Postgres) Close() {
 }
 
 func safeIntToInt32(v int) int32 {
-	clamped := v & math.MaxInt32
+	if v < 1 {
+		return _defaultMaxPoolSize
+	}
 
-	return int32(clamped)
+	if v > math.MaxInt32 {
+		return math.MaxInt32
+	}
+
+	return int32(v)
 }

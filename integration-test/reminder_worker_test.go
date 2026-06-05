@@ -122,7 +122,7 @@ func TestReminderWorkerRunOnceProcessesDueInAppJob(t *testing.T) {
 		ReminderRuleID: &ruleID,
 		OccurrenceDate: time.Date(2026, 5, 20, 0, 0, 0, 0, time.UTC),
 		OffsetDays:     7,
-		Channels:       []entity.ReminderChannel{entity.ReminderChannelInApp},
+		Channel:        entity.ReminderChannelInApp,
 		ScheduledAt:    now.Add(-time.Hour),
 		Status:         entity.ReminderJobStatusPending,
 		CreatedAt:      now,
@@ -156,6 +156,142 @@ func TestReminderWorkerRunOnceProcessesDueInAppJob(t *testing.T) {
 	assertNextReminderJobScheduled(t, ctx, pg, userID, dayID, jobID, ruleID)
 }
 
+func TestReminderJobRepoStoresPerChannelJobs(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+
+	pg := openIntegrationPostgres(t)
+	now := time.Date(2026, 5, 13, 9, 0, 0, 0, time.UTC)
+	userID, dayID, ruleID := seedReminderDay(t, ctx, pg, now)
+	jobRepo := persistent.NewReminderJobRepo(pg)
+
+	baseJob := entity.ReminderJob{
+		UserID:         userID,
+		ImportantDayID: dayID,
+		ReminderRuleID: &ruleID,
+		OccurrenceDate: time.Date(2026, 5, 20, 0, 0, 0, 0, time.UTC),
+		OffsetDays:     7,
+		ScheduledAt:    now,
+		Status:         entity.ReminderJobStatusPending,
+		CreatedAt:      now,
+		UpdatedAt:      now,
+	}
+
+	emailJob := baseJob
+	emailJob.ID = uuid.NewString()
+	emailJob.Channel = entity.ReminderChannelEmail
+	if err := jobRepo.Store(ctx, &emailJob); err != nil {
+		t.Fatalf("store email reminder job: %v", err)
+	}
+
+	inAppJob := baseJob
+	inAppJob.ID = uuid.NewString()
+	inAppJob.Channel = entity.ReminderChannelInApp
+	if err := jobRepo.Store(ctx, &inAppJob); err != nil {
+		t.Fatalf("store in-app reminder job: %v", err)
+	}
+
+	duplicateEmailJob := emailJob
+	duplicateEmailJob.ID = uuid.NewString()
+	if err := jobRepo.Store(ctx, &duplicateEmailJob); err != nil {
+		t.Fatalf("store duplicate email reminder job: %v", err)
+	}
+
+	var count int
+	if err := pg.Pool.QueryRow(ctx, "SELECT COUNT(*) FROM reminder_jobs WHERE important_day_id = $1", dayID).Scan(&count); err != nil {
+		t.Fatalf("count per-channel reminder jobs: %v", err)
+	}
+	if count != 2 {
+		t.Fatalf("expected 2 per-channel jobs, got %d", count)
+	}
+}
+
+func TestReminderJobRepoFinishWithNextAtomic(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+
+	pg := openIntegrationPostgres(t)
+	now := time.Date(2026, 5, 13, 9, 0, 0, 0, time.UTC)
+	userID, dayID, ruleID := seedReminderDay(t, ctx, pg, now)
+	jobRepo := persistent.NewReminderJobRepo(pg)
+
+	currentJob := entity.ReminderJob{
+		ID:             uuid.NewString(),
+		UserID:         userID,
+		ImportantDayID: dayID,
+		ReminderRuleID: &ruleID,
+		OccurrenceDate: time.Date(2026, 5, 20, 0, 0, 0, 0, time.UTC),
+		OffsetDays:     7,
+		Channel:        entity.ReminderChannelInApp,
+		ScheduledAt:    now.Add(-time.Hour),
+		Status:         entity.ReminderJobStatusPending,
+		CreatedAt:      now,
+		UpdatedAt:      now,
+	}
+	if err := jobRepo.Store(ctx, &currentJob); err != nil {
+		t.Fatalf("store current reminder job: %v", err)
+	}
+
+	nextJob := currentJob
+	nextJob.ID = uuid.NewString()
+	nextJob.OccurrenceDate = time.Date(2027, 5, 20, 0, 0, 0, 0, time.UTC)
+	nextJob.ScheduledAt = time.Date(2027, 5, 13, 9, 0, 0, 0, time.UTC)
+	nextJob.Status = entity.ReminderJobStatusPending
+	nextJob.Attempts = 0
+	nextJob.LastError = ""
+	nextJob.LockedUntil = nil
+	nextJob.SentAt = nil
+	nextJob.CreatedAt = now
+	nextJob.UpdatedAt = now
+
+	if err := jobRepo.FinishWithNext(ctx, currentJob.ID, entity.ReminderJobStatusSent, now, "", nextJob); err != nil {
+		t.Fatalf("finish reminder job with next: %v", err)
+	}
+
+	assertOriginalReminderJobSent(t, ctx, pg, currentJob.ID, now)
+	assertNextReminderJobScheduled(t, ctx, pg, userID, dayID, currentJob.ID, ruleID)
+}
+
+func TestNotificationRepoDedupeKey(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+
+	pg := openIntegrationPostgres(t)
+	now := time.Date(2026, 5, 13, 9, 0, 0, 0, time.UTC)
+	userID, dayID, _ := seedReminderDay(t, ctx, pg, now)
+	notificationRepo := persistent.NewNotificationRepo(pg)
+
+	importantDayID := dayID
+	notification := entity.Notification{
+		ID:             uuid.NewString(),
+		UserID:         userID,
+		ImportantDayID: &importantDayID,
+		Type:           "important_day_reminder",
+		Title:          "Mom birthday is in 7 days",
+		Body:           "Mom birthday is coming in 7 days.",
+		Data:           "{}",
+		DedupeKey:      "reminder_job:dedupe-test:in_app",
+		CreatedAt:      now,
+	}
+	if err := notificationRepo.Store(ctx, &notification); err != nil {
+		t.Fatalf("store notification: %v", err)
+	}
+
+	duplicate := notification
+	duplicate.ID = uuid.NewString()
+	if err := notificationRepo.Store(ctx, &duplicate); err != nil {
+		t.Fatalf("store duplicate notification: %v", err)
+	}
+
+	var count int
+	if err := pg.Pool.QueryRow(ctx, "SELECT COUNT(*) FROM notifications WHERE user_id = $1", userID).Scan(&count); err != nil {
+		t.Fatalf("count deduped notifications: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("expected 1 deduped notification, got %d", count)
+	}
+}
+
 func openIntegrationPostgres(t *testing.T) *postgres.Postgres {
 	t.Helper()
 
@@ -184,6 +320,69 @@ func integrationPostgresURL() string {
 	}
 
 	return url + separator + "sslmode=disable"
+}
+
+func seedReminderDay(t *testing.T, ctx context.Context, pg *postgres.Postgres, now time.Time) (string, string, string) {
+	t.Helper()
+
+	userRepo := persistent.NewUserRepo(pg)
+	dayRepo := persistent.NewImportantDayRepo(pg)
+	ruleRepo := persistent.NewReminderRuleRepo(pg)
+
+	userID := uuid.NewString()
+	dayID := uuid.NewString()
+	ruleID := uuid.NewString()
+
+	t.Cleanup(func() {
+		_, _ = pg.Pool.Exec(context.Background(), "DELETE FROM users WHERE id = $1", userID)
+	})
+
+	user := entity.User{
+		ID:           userID,
+		Username:     "repo_" + strings.ReplaceAll(userID[:8], "-", ""),
+		Email:        userID + "@test.com",
+		PasswordHash: "hash",
+		CreatedAt:    now,
+		UpdatedAt:    now,
+	}
+	if err := userRepo.Store(ctx, &user); err != nil {
+		t.Fatalf("store user: %v", err)
+	}
+
+	day := entity.ImportantDay{
+		ID:           dayID,
+		UserID:       userID,
+		Title:        "Mom birthday",
+		Type:         entity.ImportantDayTypeBirthday,
+		EventMonth:   5,
+		EventDay:     20,
+		Recurrence:   entity.RecurrenceYearly,
+		Timezone:     "UTC",
+		ReminderTime: "09:00",
+		CreatedAt:    now,
+		UpdatedAt:    now,
+	}
+	if err := dayRepo.Store(ctx, &day); err != nil {
+		t.Fatalf("store important day: %v", err)
+	}
+
+	rule := entity.ReminderRule{
+		ID:             ruleID,
+		UserID:         userID,
+		ImportantDayID: dayID,
+		OffsetDays:     7,
+		Channels: []entity.ReminderChannel{
+			entity.ReminderChannelEmail,
+			entity.ReminderChannelInApp,
+		},
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+	if err := ruleRepo.ReplaceForImportantDay(ctx, userID, dayID, []entity.ReminderRule{rule}); err != nil {
+		t.Fatalf("store reminder rule: %v", err)
+	}
+
+	return userID, dayID, ruleID
 }
 
 func assertOriginalReminderJobSent(t *testing.T, ctx context.Context, pg *postgres.Postgres, jobID string, sentAt time.Time) {
@@ -240,13 +439,14 @@ func assertReminderNotificationStored(t *testing.T, ctx context.Context, pg *pos
 		title            string
 		body             string
 		dataRaw          string
+		dedupeKey        string
 	)
 
 	err := pg.Pool.QueryRow(
 		ctx,
-		"SELECT important_day_id::text, type, title, body, data::text FROM notifications WHERE user_id = $1",
+		"SELECT important_day_id::text, type, title, body, data::text, COALESCE(dedupe_key, '') FROM notifications WHERE user_id = $1",
 		userID,
-	).Scan(&importantDayID, &notificationType, &title, &body, &dataRaw)
+	).Scan(&importantDayID, &notificationType, &title, &body, &dataRaw, &dedupeKey)
 	if err != nil {
 		t.Fatalf("query notification: %v", err)
 	}
@@ -262,6 +462,9 @@ func assertReminderNotificationStored(t *testing.T, ctx context.Context, pg *pos
 	}
 	if body != "Mom birthday is coming in 7 days." {
 		t.Fatalf("unexpected notification body: %s", body)
+	}
+	if dedupeKey != "reminder_job:"+jobID+":in_app" {
+		t.Fatalf("unexpected notification dedupe key: %s", dedupeKey)
 	}
 
 	var data map[string]string
@@ -297,18 +500,18 @@ func assertNextReminderJobScheduled(t *testing.T, ctx context.Context, pg *postg
 		occurrenceDate time.Time
 		scheduledAt    time.Time
 		status         string
-		channelsRaw    string
+		channel        string
 	)
 
 	err = pg.Pool.QueryRow(
 		ctx,
-		`SELECT id, reminder_rule_id::text, occurrence_date, scheduled_at, status, channels::text
+		`SELECT id, reminder_rule_id::text, occurrence_date, scheduled_at, status, channel
 		FROM reminder_jobs
 		WHERE user_id = $1 AND important_day_id = $2 AND id <> $3`,
 		userID,
 		dayID,
 		originalJobID,
-	).Scan(&nextID, &nextRuleID, &occurrenceDate, &scheduledAt, &status, &channelsRaw)
+	).Scan(&nextID, &nextRuleID, &occurrenceDate, &scheduledAt, &status, &channel)
 	if err != nil {
 		t.Fatalf("query next reminder job: %v", err)
 	}
@@ -329,11 +532,7 @@ func assertNextReminderJobScheduled(t *testing.T, ctx context.Context, pg *postg
 		t.Fatalf("expected next job status pending, got %s", status)
 	}
 
-	var channels []entity.ReminderChannel
-	if err := json.Unmarshal([]byte(channelsRaw), &channels); err != nil {
-		t.Fatalf("decode next job channels: %v", err)
-	}
-	if len(channels) != 1 || channels[0] != entity.ReminderChannelInApp {
-		t.Fatalf("expected next job channels [in_app], got %+v", channels)
+	if channel != string(entity.ReminderChannelInApp) {
+		t.Fatalf("expected next job channel in_app, got %s", channel)
 	}
 }

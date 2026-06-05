@@ -1,17 +1,22 @@
 package entity
 
 import (
+	"encoding/base64"
 	"net/mail"
 	"strings"
 	"time"
 )
 
 const (
-	MinUsernameLength = 3
-	MaxUsernameLength = 255
-	MinPasswordLength = 8
-	MaxPasswordLength = 72
-	MaxEmailLength    = 254
+	MinUsernameLength       = 3
+	MaxUsernameLength       = 255
+	MinPasswordLength       = 8
+	MaxPasswordLength       = 72
+	MaxEmailLength          = 254
+	RefreshTokenBytes       = 32
+	RefreshTokenLength      = 43
+	MaxSessionIPLength      = 64
+	MaxSessionUserAgentSize = 512
 )
 
 // User -.
@@ -34,14 +39,39 @@ type AuthTokens struct {
 
 // UserSession -.
 type UserSession struct {
-	ID               string     `json:"id"                 example:"550e8400-e29b-41d4-a716-446655440000"`
-	UserID           string     `json:"user_id"            example:"550e8400-e29b-41d4-a716-446655440000"`
-	RefreshTokenHash string     `json:"-"`
-	ExpiresAt        time.Time  `json:"expires_at"         example:"2026-01-31T00:00:00Z"`
-	RevokedAt        *time.Time `json:"revoked_at"`
-	CreatedAt        time.Time  `json:"created_at"         example:"2026-01-01T00:00:00Z"`
-	UpdatedAt        time.Time  `json:"updated_at"         example:"2026-01-01T00:00:00Z"`
+	ID                string     `json:"id"                   example:"550e8400-e29b-41d4-a716-446655440000"`
+	UserID            string     `json:"user_id"              example:"550e8400-e29b-41d4-a716-446655440000"`
+	RefreshTokenHash  string     `json:"-"`
+	ExpiresAt         time.Time  `json:"expires_at"           example:"2026-01-31T00:00:00Z"`
+	RevokedAt         *time.Time `json:"revoked_at"`
+	RevokedReason     string     `json:"revoked_reason"`
+	CreatedIP         string     `json:"created_ip"`
+	CreatedUserAgent  string     `json:"created_user_agent"`
+	LastUsedAt        *time.Time `json:"last_used_at"`
+	LastUsedIP        string     `json:"last_used_ip"`
+	LastUsedUserAgent string     `json:"last_used_user_agent"`
+	CreatedAt         time.Time  `json:"created_at"           example:"2026-01-01T00:00:00Z"`
+	UpdatedAt         time.Time  `json:"updated_at"           example:"2026-01-01T00:00:00Z"`
 }
+
+// SessionMetadata describes the request context that created or used a refresh session.
+type SessionMetadata struct {
+	IP        string
+	UserAgent string
+}
+
+// UserSessionView is the safe public representation of an active user session.
+type UserSessionView struct {
+	ID                string     `json:"id"                   example:"550e8400-e29b-41d4-a716-446655440000"`
+	ExpiresAt         time.Time  `json:"expires_at"           example:"2026-01-31T00:00:00Z"`
+	CreatedIP         string     `json:"created_ip"           example:"127.0.0.1"`
+	CreatedUserAgent  string     `json:"created_user_agent"   example:"Memora/1.0"`
+	LastUsedAt        *time.Time `json:"last_used_at"`
+	LastUsedIP        string     `json:"last_used_ip"         example:"127.0.0.1"`
+	LastUsedUserAgent string     `json:"last_used_user_agent" example:"Memora/1.0"`
+	CreatedAt         time.Time  `json:"created_at"           example:"2026-01-01T00:00:00Z"`
+	UpdatedAt         time.Time  `json:"updated_at"           example:"2026-01-01T00:00:00Z"`
+} // @name entity.UserSessionView
 
 // NormalizeUserRegistration validates and canonicalizes registration credentials.
 func NormalizeUserRegistration(username, email, password string) (string, string, error) {
@@ -64,6 +94,52 @@ func NormalizeUserLogin(email, password string) (string, error) {
 	}
 
 	return email, nil
+}
+
+// ValidatePasswordChange validates password-change credentials.
+func ValidatePasswordChange(currentPassword, newPassword string) error {
+	if currentPassword == "" || len(currentPassword) > MaxPasswordLength || !validPassword(newPassword) {
+		return ErrInvalidUserInput
+	}
+
+	return nil
+}
+
+// NormalizeSessionMetadata canonicalizes request metadata for storage.
+func NormalizeSessionMetadata(metadata SessionMetadata) SessionMetadata {
+	return SessionMetadata{
+		IP:        truncate(strings.TrimSpace(metadata.IP), MaxSessionIPLength),
+		UserAgent: truncate(strings.TrimSpace(metadata.UserAgent), MaxSessionUserAgentSize),
+	}
+}
+
+// ValidRefreshToken reports whether token matches the generated opaque refresh token format.
+func ValidRefreshToken(token string) bool {
+	if len(token) != RefreshTokenLength {
+		return false
+	}
+
+	decoded, err := base64.RawURLEncoding.DecodeString(token)
+	if err != nil {
+		return false
+	}
+
+	return len(decoded) == RefreshTokenBytes
+}
+
+// ToView returns the safe public representation of a user session.
+func (s UserSession) ToView() UserSessionView {
+	return UserSessionView{
+		ID:                s.ID,
+		ExpiresAt:         s.ExpiresAt,
+		CreatedIP:         s.CreatedIP,
+		CreatedUserAgent:  s.CreatedUserAgent,
+		LastUsedAt:        s.LastUsedAt,
+		LastUsedIP:        s.LastUsedIP,
+		LastUsedUserAgent: s.LastUsedUserAgent,
+		CreatedAt:         s.CreatedAt,
+		UpdatedAt:         s.UpdatedAt,
+	}
 }
 
 func normalizeEmail(email string) string {
@@ -93,4 +169,12 @@ func validEmail(email string) bool {
 	}
 
 	return address.Address == email
+}
+
+func truncate(value string, maxLength int) string {
+	if len(value) <= maxLength {
+		return value
+	}
+
+	return value[:maxLength]
 }

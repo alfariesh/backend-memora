@@ -25,9 +25,9 @@ func NewNotificationRepo(pg *postgres.Postgres) *NotificationRepo {
 
 // Store -.
 func (r *NotificationRepo) Store(ctx context.Context, notification *entity.Notification) error {
-	sql, args, err := r.Builder.
+	builder := r.Builder.
 		Insert("notifications").
-		Columns("id, user_id, important_day_id, type, title, body, data, read_at, created_at").
+		Columns("id, user_id, important_day_id, type, title, body, data, dedupe_key, read_at, created_at").
 		Values(
 			notification.ID,
 			notification.UserID,
@@ -36,10 +36,15 @@ func (r *NotificationRepo) Store(ctx context.Context, notification *entity.Notif
 			notification.Title,
 			notification.Body,
 			notification.Data,
+			nullableString(notification.DedupeKey),
 			notification.ReadAt,
 			notification.CreatedAt,
-		).
-		ToSql()
+		)
+	if notification.DedupeKey != "" {
+		builder = builder.Suffix("ON CONFLICT (user_id, dedupe_key) WHERE dedupe_key IS NOT NULL DO NOTHING")
+	}
+
+	sql, args, err := builder.ToSql()
 	if err != nil {
 		return fmt.Errorf("NotificationRepo - Store - r.Builder: %w", err)
 	}
@@ -204,7 +209,7 @@ func (r *NotificationRepo) MarkAllRead(ctx context.Context, userID string, readA
 }
 
 func notificationColumns() string {
-	return "id, user_id, important_day_id, type, title, body, data, read_at, created_at"
+	return "id, user_id, important_day_id, type, title, body, data, COALESCE(dedupe_key, ''), read_at, created_at"
 }
 
 func scanNotification(row scanner) (entity.Notification, error) {
@@ -218,9 +223,18 @@ func scanNotification(row scanner) (entity.Notification, error) {
 		&notification.Title,
 		&notification.Body,
 		&notification.Data,
+		&notification.DedupeKey,
 		&notification.ReadAt,
 		&notification.CreatedAt,
 	)
 
 	return notification, err
+}
+
+func nullableString(value string) any {
+	if value == "" {
+		return nil
+	}
+
+	return value
 }

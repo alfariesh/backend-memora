@@ -45,3 +45,9 @@ type MobileBootstrap struct {
 	Devices                 []entity.DeviceToken          `json:"devices"`
 	DevicesTotal            int                           `json:"devices_total"              example:"1"`
 } // @name v1.MobileBootstrap
+
+// UserSessionList -.
+type UserSessionList struct {
+	Sessions []entity.UserSessionView `json:"sessions"`
+	Total    int                      `json:"total" example:"2"`
+} // @name v1.UserSessionList

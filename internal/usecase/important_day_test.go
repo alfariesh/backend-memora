@@ -44,6 +44,68 @@ func TestImportantDayListCapsLimitAndNormalizesOffset(t *testing.T) {
 	assert.Zero(t, total)
 }
 
+func TestImportantDayCreateBuildsPerChannelReminderJobs(t *testing.T) {
+	t.Parallel()
+
+	uc, dayRepo, ruleRepo, jobRepo, settingsRepo := newImportantDayUseCase(t)
+	settingsRepo.EXPECT().
+		Get(context.Background(), "user-id-123").
+		Return(entity.UserSettings{
+			UserID:       "user-id-123",
+			Timezone:     "UTC",
+			ReminderTime: "09:00",
+			NotificationChannels: []entity.ReminderChannel{
+				entity.ReminderChannelEmail,
+				entity.ReminderChannelInApp,
+				entity.ReminderChannelPush,
+			},
+		}, nil)
+	dayRepo.EXPECT().
+		Store(context.Background(), gomock.AssignableToTypeOf(&entity.ImportantDay{})).
+		Return(nil)
+	ruleRepo.EXPECT().
+		ReplaceForImportantDay(context.Background(), "user-id-123", gomock.Any(), gomock.Len(1)).
+		Return(nil)
+	jobRepo.EXPECT().
+		ReplacePendingForImportantDay(context.Background(), "user-id-123", gomock.Any(), gomock.AssignableToTypeOf([]entity.ReminderJob{})).
+		DoAndReturn(func(_ context.Context, _ string, _ string, jobs []entity.ReminderJob) error {
+			require.Len(t, jobs, 3)
+
+			channels := make(map[entity.ReminderChannel]struct{}, len(jobs))
+			for _, job := range jobs {
+				assert.NotEmpty(t, job.ID)
+				assert.Equal(t, entity.ReminderJobStatusPending, job.Status)
+				assert.False(t, job.ScheduledAt.IsZero())
+				channels[job.Channel] = struct{}{}
+			}
+
+			assert.Contains(t, channels, entity.ReminderChannelEmail)
+			assert.Contains(t, channels, entity.ReminderChannelInApp)
+			assert.Contains(t, channels, entity.ReminderChannelPush)
+
+			return nil
+		})
+
+	_, err := uc.Create(context.Background(), "user-id-123", entity.ImportantDayParams{
+		Title:      "Mom birthday",
+		Type:       entity.ImportantDayTypeBirthday,
+		EventMonth: 5,
+		EventDay:   20,
+		ReminderRules: []entity.ReminderRuleParams{
+			{
+				OffsetDays: 7,
+				Channels: []entity.ReminderChannel{
+					entity.ReminderChannelEmail,
+					entity.ReminderChannelInApp,
+					entity.ReminderChannelPush,
+				},
+			},
+		},
+	})
+
+	require.NoError(t, err)
+}
+
 func TestImportantDayGetReminderRules(t *testing.T) {
 	t.Parallel()
 

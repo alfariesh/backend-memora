@@ -59,6 +59,56 @@ Errors:
 | `404` | `user_not_found` |
 | `500` | `internal_server_error` |
 
+## Change Password
+
+```http
+POST /v1/user/password
+Authorization: Bearer <access_token>
+Content-Type: application/json
+```
+
+Request:
+
+```json
+{
+  "current_password": "secret123",
+  "new_password": "newsecret123"
+}
+```
+
+Validation:
+
+| Field | Required | Rule |
+| --- | --- | --- |
+| `current_password` | yes | non-empty, max `72` chars |
+| `new_password` | yes | min `8`, max `72` chars |
+
+Success `200`:
+
+```json
+{
+  "token": "<new-jwt>",
+  "access_token": "<new-jwt>",
+  "refresh_token": "<new-opaque-refresh-token>",
+  "expires_at": "2026-01-01T00:00:00Z"
+}
+```
+
+Behavior:
+
+- Backend verifies current password.
+- Backend updates password hash, revokes all old refresh sessions, then issues a fresh session.
+- FE must replace local access and refresh tokens with the response tokens.
+
+Errors:
+
+| Status | Body |
+| --- | --- |
+| `400` | `validation_error`, `invalid_request_body`, atau `invalid_user_input` |
+| `401` | Auth error atau `invalid_credentials` |
+| `404` | `user_not_found` |
+| `500` | `internal_server_error` |
+
 ## User Settings Object
 
 Settings mengatur default saat membuat important day baru dan preference channel saat worker mengirim reminder.

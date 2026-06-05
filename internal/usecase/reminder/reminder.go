@@ -16,6 +16,11 @@ import (
 
 const maxAttempts = 3
 
+type deliveryResult struct {
+	status entity.ReminderJobStatus
+	reason string
+}
+
 // UseCase -.
 type UseCase struct {
 	jobRepo          repo.ReminderJobRepo
@@ -78,114 +83,112 @@ func (uc *UseCase) deliverJob(ctx context.Context, job entity.ReminderJob, now t
 		return fmt.Errorf("ReminderUseCase - deliverJob - uc.dayRepo.GetByID: %w", err)
 	}
 
-	user, err := uc.userRepo.GetByID(ctx, job.UserID)
-	if err != nil {
-		return fmt.Errorf("ReminderUseCase - deliverJob - uc.userRepo.GetByID: %w", err)
-	}
-
 	title, body := reminderCopy(day, job)
-	channels, err := uc.enabledChannels(ctx, job)
+	enabled, err := uc.enabledChannel(ctx, job)
 	if err != nil {
-		return fmt.Errorf("ReminderUseCase - deliverJob - uc.enabledChannels: %w", err)
+		return fmt.Errorf("ReminderUseCase - deliverJob - uc.enabledChannel: %w", err)
 	}
 
-	failures := make([]string, 0)
-	delivered := false
-
-	if hasChannel(channels, entity.ReminderChannelEmail) {
-		ok, failure := uc.deliverEmail(ctx, user, day, job, title, body)
-		delivered = delivered || ok
-		failures = appendFailure(failures, failure)
+	result := deliveryResult{status: entity.ReminderJobStatusSkipped, reason: "channel disabled"}
+	if enabled {
+		result, err = uc.deliverChannel(ctx, day, job, title, body, now)
+		if err != nil {
+			return err
+		}
 	}
 
-	if hasChannel(channels, entity.ReminderChannelInApp) {
-		ok, failure := uc.deliverInApp(ctx, job, title, body, now)
-		delivered = delivered || ok
-		failures = appendFailure(failures, failure)
+	next, err := nextReminderJob(day, job, now)
+	if err != nil {
+		return fmt.Errorf("ReminderUseCase - deliverJob - nextReminderJob: %w", err)
 	}
 
-	if hasChannel(channels, entity.ReminderChannelPush) {
-		ok, failure := uc.deliverPush(ctx, job, title, body)
-		delivered = delivered || ok
-		failures = appendFailure(failures, failure)
-	}
-
-	if len(failures) > 0 && !delivered {
-		return errors.New(strings.Join(failures, "; "))
-	}
-
-	if err = uc.jobRepo.MarkSent(ctx, job.ID, now); err != nil {
-		return fmt.Errorf("ReminderUseCase - deliverJob - uc.jobRepo.MarkSent: %w", err)
-	}
-
-	if err = uc.scheduleNext(ctx, day, job, now); err != nil {
-		return fmt.Errorf("ReminderUseCase - deliverJob - uc.scheduleNext: %w", err)
+	if err = uc.jobRepo.FinishWithNext(ctx, job.ID, result.status, now, result.reason, next); err != nil {
+		return fmt.Errorf("ReminderUseCase - deliverJob - uc.jobRepo.FinishWithNext: %w", err)
 	}
 
 	return nil
 }
 
-func (uc *UseCase) deliverEmail(ctx context.Context, user entity.User, day entity.ImportantDay, job entity.ReminderJob, title, body string) (bool, string) {
+func (uc *UseCase) deliverChannel(ctx context.Context, day entity.ImportantDay, job entity.ReminderJob, title, body string, now time.Time) (deliveryResult, error) {
+	switch job.Channel {
+	case entity.ReminderChannelEmail:
+		return uc.deliverEmail(ctx, day, job, title, body)
+	case entity.ReminderChannelInApp:
+		return uc.deliverInApp(ctx, job, title, body, now)
+	case entity.ReminderChannelPush:
+		return uc.deliverPush(ctx, job, title, body, now)
+	default:
+		return deliveryResult{}, fmt.Errorf("invalid reminder channel: %s", job.Channel)
+	}
+}
+
+func (uc *UseCase) deliverEmail(ctx context.Context, day entity.ImportantDay, job entity.ReminderJob, title, body string) (deliveryResult, error) {
 	if uc.emailSender == nil {
-		return false, ""
+		return deliveryResult{status: entity.ReminderJobStatusSkipped, reason: entity.ErrEmailSenderNotConfigured.Error()}, nil
+	}
+
+	user, err := uc.userRepo.GetByID(ctx, job.UserID)
+	if err != nil {
+		return deliveryResult{}, fmt.Errorf("ReminderUseCase - deliverEmail - uc.userRepo.GetByID: %w", err)
 	}
 
 	if _, err := uc.emailSender.Send(ctx, user.Email, title, reminderHTML(user, day, job, body)); err != nil {
 		if errors.Is(err, entity.ErrEmailSenderNotConfigured) {
-			return false, ""
+			return deliveryResult{status: entity.ReminderJobStatusSkipped, reason: entity.ErrEmailSenderNotConfigured.Error()}, nil
 		}
 
-		return false, "email: " + err.Error()
+		return deliveryResult{}, fmt.Errorf("email: %w", err)
 	}
 
-	return true, ""
+	return deliveryResult{status: entity.ReminderJobStatusSent}, nil
 }
 
-func (uc *UseCase) deliverInApp(ctx context.Context, job entity.ReminderJob, title, body string, now time.Time) (bool, string) {
+func (uc *UseCase) deliverInApp(ctx context.Context, job entity.ReminderJob, title, body string, now time.Time) (deliveryResult, error) {
 	if err := uc.storeNotification(ctx, job, title, body, now); err != nil {
-		return false, "in_app: " + err.Error()
+		return deliveryResult{}, fmt.Errorf("in_app: %w", err)
 	}
 
-	return true, ""
+	return deliveryResult{status: entity.ReminderJobStatusSent}, nil
 }
 
-func (uc *UseCase) deliverPush(ctx context.Context, job entity.ReminderJob, title, body string) (bool, string) {
+func (uc *UseCase) deliverPush(ctx context.Context, job entity.ReminderJob, title, body string, now time.Time) (deliveryResult, error) {
 	if uc.pushSender == nil {
-		return false, "push: " + entity.ErrPushSenderNotConfigured.Error()
+		return deliveryResult{status: entity.ReminderJobStatusSkipped, reason: entity.ErrPushSenderNotConfigured.Error()}, nil
 	}
 
-	if err := uc.sendPush(ctx, job, title, body); err != nil {
-		return false, "push: " + err.Error()
+	result, err := uc.sendPush(ctx, job, title, body, now)
+	if err != nil {
+		return deliveryResult{}, fmt.Errorf("push: %w", err)
 	}
 
-	return true, ""
+	return result, nil
 }
 
-func (uc *UseCase) enabledChannels(ctx context.Context, job entity.ReminderJob) ([]entity.ReminderChannel, error) {
+func (uc *UseCase) enabledChannel(ctx context.Context, job entity.ReminderJob) (bool, error) {
 	if uc.settingsRepo == nil {
-		return job.Channels, nil
+		return true, nil
 	}
 
 	settings, err := uc.settingsRepo.Get(ctx, job.UserID)
 	if err != nil {
 		if errors.Is(err, entity.ErrUserSettingsNotFound) {
-			return job.Channels, nil
+			return true, nil
 		}
 
-		return nil, err
+		return false, err
 	}
 
-	return entity.FilterReminderChannels(job.Channels, settings.NotificationChannels), nil
+	return hasChannel(settings.NotificationChannels, job.Channel), nil
 }
 
-func (uc *UseCase) sendPush(ctx context.Context, job entity.ReminderJob, title, body string) error {
+func (uc *UseCase) sendPush(ctx context.Context, job entity.ReminderJob, title, body string, now time.Time) (deliveryResult, error) {
 	tokens, err := uc.deviceRepo.ListActiveByUser(ctx, job.UserID)
 	if err != nil {
-		return fmt.Errorf("ReminderUseCase - sendPush - uc.deviceRepo.ListActiveByUser: %w", err)
+		return deliveryResult{}, fmt.Errorf("ReminderUseCase - sendPush - uc.deviceRepo.ListActiveByUser: %w", err)
 	}
 
 	if len(tokens) == 0 {
-		return nil
+		return deliveryResult{status: entity.ReminderJobStatusSkipped, reason: "no active push tokens"}, nil
 	}
 
 	data := map[string]string{
@@ -196,10 +199,11 @@ func (uc *UseCase) sendPush(ctx context.Context, job entity.ReminderJob, title, 
 	}
 
 	failures := make([]string, 0)
+	sent := false
 	for _, token := range tokens {
 		if _, err = uc.pushSender.Send(ctx, token.Token, title, body, data); err != nil {
 			if errors.Is(err, entity.ErrPushDeviceNotRegistered) {
-				if deactivateErr := uc.deviceRepo.Deactivate(ctx, job.UserID, token.ID, time.Now().UTC()); deactivateErr != nil {
+				if deactivateErr := uc.deviceRepo.Deactivate(ctx, job.UserID, token.ID, now); deactivateErr != nil {
 					failures = append(failures, deactivateErr.Error())
 				}
 
@@ -207,22 +211,21 @@ func (uc *UseCase) sendPush(ctx context.Context, job entity.ReminderJob, title, 
 			}
 
 			failures = append(failures, err.Error())
+			continue
 		}
+
+		sent = true
 	}
 
 	if len(failures) > 0 {
-		return errors.New(strings.Join(failures, "; "))
+		return deliveryResult{}, errors.New(strings.Join(failures, "; "))
 	}
 
-	return nil
-}
-
-func appendFailure(failures []string, failure string) []string {
-	if failure == "" {
-		return failures
+	if !sent {
+		return deliveryResult{status: entity.ReminderJobStatusSkipped, reason: "no registered push devices"}, nil
 	}
 
-	return append(failures, failure)
+	return deliveryResult{status: entity.ReminderJobStatusSent}, nil
 }
 
 func (uc *UseCase) storeNotification(ctx context.Context, job entity.ReminderJob, title, body string, now time.Time) error {
@@ -244,39 +247,42 @@ func (uc *UseCase) storeNotification(ctx context.Context, job entity.ReminderJob
 		Title:          title,
 		Body:           body,
 		Data:           string(data),
+		DedupeKey:      reminderNotificationDedupeKey(job),
 		CreatedAt:      now,
 	}
 
 	return uc.notificationRepo.Store(ctx, &notification)
 }
 
-func (uc *UseCase) scheduleNext(ctx context.Context, day entity.ImportantDay, job entity.ReminderJob, now time.Time) error {
+func nextReminderJob(day entity.ImportantDay, job entity.ReminderJob, now time.Time) (entity.ReminderJob, error) {
 	nextFrom := job.OccurrenceDate.AddDate(0, 0, 1)
 	nextOccurrence, err := day.NextOccurrence(nextFrom)
 	if err != nil {
-		return err
+		return entity.ReminderJob{}, err
 	}
 
 	scheduledAt, err := day.ReminderScheduledAt(nextOccurrence, job.OffsetDays)
 	if err != nil {
-		return err
+		return entity.ReminderJob{}, err
 	}
 
-	next := entity.ReminderJob{
+	return entity.ReminderJob{
 		ID:             uuid.New().String(),
 		UserID:         job.UserID,
 		ImportantDayID: job.ImportantDayID,
 		ReminderRuleID: job.ReminderRuleID,
 		OccurrenceDate: nextOccurrence,
 		OffsetDays:     job.OffsetDays,
-		Channels:       job.Channels,
+		Channel:        job.Channel,
 		ScheduledAt:    scheduledAt,
 		Status:         entity.ReminderJobStatusPending,
 		CreatedAt:      now,
 		UpdatedAt:      now,
-	}
+	}, nil
+}
 
-	return uc.jobRepo.Store(ctx, &next)
+func reminderNotificationDedupeKey(job entity.ReminderJob) string {
+	return "reminder_job:" + job.ID + ":in_app"
 }
 
 func reminderCopy(day entity.ImportantDay, job entity.ReminderJob) (string, string) {

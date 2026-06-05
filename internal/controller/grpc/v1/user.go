@@ -44,7 +44,7 @@ func (c *AuthController) Login(ctx context.Context, req *v1.LoginRequest) (*v1.L
 		return nil, status.Error(codes.InvalidArgument, "invalid user input")
 	}
 
-	tokens, err := c.u.Login(ctx, email, req.GetPassword())
+	tokens, err := c.u.LoginAccessOnly(ctx, email, req.GetPassword())
 	if err != nil {
 		c.l.Error(err, "grpc - v1 - Login")
 

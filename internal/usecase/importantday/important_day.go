@@ -316,7 +316,7 @@ func buildReminderJobs(day entity.ImportantDay, rules []entity.ReminderRule, now
 		return nil, err
 	}
 
-	jobs := make([]entity.ReminderJob, 0, len(rules))
+	jobs := make([]entity.ReminderJob, 0, len(rules)*len(entity.DefaultReminderChannels))
 	for _, rule := range rules {
 		scheduledAt, scheduleErr := day.ReminderScheduledAt(occurrence, rule.OffsetDays)
 		if scheduleErr != nil {
@@ -327,20 +327,27 @@ func buildReminderJobs(day entity.ImportantDay, rules []entity.ReminderRule, now
 			scheduledAt = now
 		}
 
+		channels, channelErr := entity.NormalizeReminderChannels(rule.Channels)
+		if channelErr != nil {
+			return nil, channelErr
+		}
+
 		ruleID := rule.ID
-		jobs = append(jobs, entity.ReminderJob{
-			ID:             uuid.New().String(),
-			UserID:         day.UserID,
-			ImportantDayID: day.ID,
-			ReminderRuleID: &ruleID,
-			OccurrenceDate: occurrence,
-			OffsetDays:     rule.OffsetDays,
-			Channels:       rule.Channels,
-			ScheduledAt:    scheduledAt,
-			Status:         entity.ReminderJobStatusPending,
-			CreatedAt:      now,
-			UpdatedAt:      now,
-		})
+		for _, channel := range channels {
+			jobs = append(jobs, entity.ReminderJob{
+				ID:             uuid.New().String(),
+				UserID:         day.UserID,
+				ImportantDayID: day.ID,
+				ReminderRuleID: &ruleID,
+				OccurrenceDate: occurrence,
+				OffsetDays:     rule.OffsetDays,
+				Channel:        channel,
+				ScheduledAt:    scheduledAt,
+				Status:         entity.ReminderJobStatusPending,
+				CreatedAt:      now,
+				UpdatedAt:      now,
+			})
+		}
 	}
 
 	return jobs, nil

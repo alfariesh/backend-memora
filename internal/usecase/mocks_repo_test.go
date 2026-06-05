@@ -87,6 +87,20 @@ func (mr *MockUserRepoMockRecorder) Store(ctx, user any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Store", reflect.TypeOf((*MockUserRepo)(nil).Store), ctx, user)
 }
 
+// UpdatePasswordAndReplaceSessions mocks base method.
+func (m *MockUserRepo) UpdatePasswordAndReplaceSessions(ctx context.Context, userID, passwordHash string, at time.Time, session *entity.UserSession) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdatePasswordAndReplaceSessions", ctx, userID, passwordHash, at, session)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdatePasswordAndReplaceSessions indicates an expected call of UpdatePasswordAndReplaceSessions.
+func (mr *MockUserRepoMockRecorder) UpdatePasswordAndReplaceSessions(ctx, userID, passwordHash, at, session any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdatePasswordAndReplaceSessions", reflect.TypeOf((*MockUserRepo)(nil).UpdatePasswordAndReplaceSessions), ctx, userID, passwordHash, at, session)
+}
+
 // MockUserSettingsRepo is a mock of UserSettingsRepo interface.
 type MockUserSettingsRepo struct {
 	ctrl     *gomock.Controller
@@ -164,33 +178,76 @@ func (m *MockUserSessionRepo) EXPECT() *MockUserSessionRepoMockRecorder {
 	return m.recorder
 }
 
-// GetActiveByRefreshTokenHash mocks base method.
-func (m *MockUserSessionRepo) GetActiveByRefreshTokenHash(ctx context.Context, refreshTokenHash string, now time.Time) (entity.UserSession, error) {
+// ListActiveByUserID mocks base method.
+func (m *MockUserSessionRepo) ListActiveByUserID(ctx context.Context, userID string, now time.Time) ([]entity.UserSession, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetActiveByRefreshTokenHash", ctx, refreshTokenHash, now)
-	ret0, _ := ret[0].(entity.UserSession)
+	ret := m.ctrl.Call(m, "ListActiveByUserID", ctx, userID, now)
+	ret0, _ := ret[0].([]entity.UserSession)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetActiveByRefreshTokenHash indicates an expected call of GetActiveByRefreshTokenHash.
-func (mr *MockUserSessionRepoMockRecorder) GetActiveByRefreshTokenHash(ctx, refreshTokenHash, now any) *gomock.Call {
+// ListActiveByUserID indicates an expected call of ListActiveByUserID.
+func (mr *MockUserSessionRepoMockRecorder) ListActiveByUserID(ctx, userID, now any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetActiveByRefreshTokenHash", reflect.TypeOf((*MockUserSessionRepo)(nil).GetActiveByRefreshTokenHash), ctx, refreshTokenHash, now)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListActiveByUserID", reflect.TypeOf((*MockUserSessionRepo)(nil).ListActiveByUserID), ctx, userID, now)
+}
+
+// RevokeAllByUserID mocks base method.
+func (m *MockUserSessionRepo) RevokeAllByUserID(ctx context.Context, userID string, at time.Time, reason string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RevokeAllByUserID", ctx, userID, at, reason)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RevokeAllByUserID indicates an expected call of RevokeAllByUserID.
+func (mr *MockUserSessionRepoMockRecorder) RevokeAllByUserID(ctx, userID, at, reason any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeAllByUserID", reflect.TypeOf((*MockUserSessionRepo)(nil).RevokeAllByUserID), ctx, userID, at, reason)
+}
+
+// RevokeByID mocks base method.
+func (m *MockUserSessionRepo) RevokeByID(ctx context.Context, userID, id string, at time.Time, reason string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RevokeByID", ctx, userID, id, at, reason)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RevokeByID indicates an expected call of RevokeByID.
+func (mr *MockUserSessionRepoMockRecorder) RevokeByID(ctx, userID, id, at, reason any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeByID", reflect.TypeOf((*MockUserSessionRepo)(nil).RevokeByID), ctx, userID, id, at, reason)
 }
 
 // RevokeByRefreshTokenHash mocks base method.
-func (m *MockUserSessionRepo) RevokeByRefreshTokenHash(ctx context.Context, refreshTokenHash string, at time.Time) error {
+func (m *MockUserSessionRepo) RevokeByRefreshTokenHash(ctx context.Context, refreshTokenHash string, at time.Time, reason string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RevokeByRefreshTokenHash", ctx, refreshTokenHash, at)
+	ret := m.ctrl.Call(m, "RevokeByRefreshTokenHash", ctx, refreshTokenHash, at, reason)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // RevokeByRefreshTokenHash indicates an expected call of RevokeByRefreshTokenHash.
-func (mr *MockUserSessionRepoMockRecorder) RevokeByRefreshTokenHash(ctx, refreshTokenHash, at any) *gomock.Call {
+func (mr *MockUserSessionRepoMockRecorder) RevokeByRefreshTokenHash(ctx, refreshTokenHash, at, reason any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeByRefreshTokenHash", reflect.TypeOf((*MockUserSessionRepo)(nil).RevokeByRefreshTokenHash), ctx, refreshTokenHash, at)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeByRefreshTokenHash", reflect.TypeOf((*MockUserSessionRepo)(nil).RevokeByRefreshTokenHash), ctx, refreshTokenHash, at, reason)
+}
+
+// Rotate mocks base method.
+func (m *MockUserSessionRepo) Rotate(ctx context.Context, refreshTokenHash string, now time.Time, nextSession entity.UserSession) (entity.UserSession, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Rotate", ctx, refreshTokenHash, now, nextSession)
+	ret0, _ := ret[0].(entity.UserSession)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Rotate indicates an expected call of Rotate.
+func (mr *MockUserSessionRepoMockRecorder) Rotate(ctx, refreshTokenHash, now, nextSession any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Rotate", reflect.TypeOf((*MockUserSessionRepo)(nil).Rotate), ctx, refreshTokenHash, now, nextSession)
 }
 
 // Store mocks base method.
@@ -396,6 +453,20 @@ func (mr *MockReminderJobRepoMockRecorder) ClaimDue(ctx, now, limit any) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClaimDue", reflect.TypeOf((*MockReminderJobRepo)(nil).ClaimDue), ctx, now, limit)
 }
 
+// FinishWithNext mocks base method.
+func (m *MockReminderJobRepo) FinishWithNext(ctx context.Context, id string, status entity.ReminderJobStatus, finishedAt time.Time, lastError string, nextJob entity.ReminderJob) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FinishWithNext", ctx, id, status, finishedAt, lastError, nextJob)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// FinishWithNext indicates an expected call of FinishWithNext.
+func (mr *MockReminderJobRepoMockRecorder) FinishWithNext(ctx, id, status, finishedAt, lastError, nextJob any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FinishWithNext", reflect.TypeOf((*MockReminderJobRepo)(nil).FinishWithNext), ctx, id, status, finishedAt, lastError, nextJob)
+}
+
 // MarkFailed mocks base method.
 func (m *MockReminderJobRepo) MarkFailed(ctx context.Context, id, reason string, retry bool) error {
 	m.ctrl.T.Helper()
@@ -408,20 +479,6 @@ func (m *MockReminderJobRepo) MarkFailed(ctx context.Context, id, reason string,
 func (mr *MockReminderJobRepoMockRecorder) MarkFailed(ctx, id, reason, retry any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkFailed", reflect.TypeOf((*MockReminderJobRepo)(nil).MarkFailed), ctx, id, reason, retry)
-}
-
-// MarkSent mocks base method.
-func (m *MockReminderJobRepo) MarkSent(ctx context.Context, id string, sentAt time.Time) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "MarkSent", ctx, id, sentAt)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// MarkSent indicates an expected call of MarkSent.
-func (mr *MockReminderJobRepoMockRecorder) MarkSent(ctx, id, sentAt any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkSent", reflect.TypeOf((*MockReminderJobRepo)(nil).MarkSent), ctx, id, sentAt)
 }
 
 // ReplacePendingForImportantDay mocks base method.

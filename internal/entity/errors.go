@@ -19,6 +19,8 @@ var (
 	ErrUserSettingsNotFound     = errors.New("user settings not found")
 	ErrInvalidUserSettings      = errors.New("invalid user settings")
 	ErrInvalidRefreshToken      = errors.New("invalid refresh token")
+	ErrRefreshTokenReuse        = errors.New("refresh token reuse detected")
+	ErrSessionNotFound          = errors.New("session not found")
 	ErrEmailSenderNotConfigured = errors.New("email sender not configured")
 	ErrPushSenderNotConfigured  = errors.New("push sender not configured")
 	ErrPushSendFailed           = errors.New("push send failed")

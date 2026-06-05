@@ -393,14 +393,9 @@ func replacePendingReminderJobsTx(ctx context.Context, builder sq.StatementBuild
 	}
 
 	for _, job := range jobs {
-		channels, marshalErr := marshalChannels(job.Channels)
-		if marshalErr != nil {
-			return fmt.Errorf("ImportantDayRepo - replacePendingReminderJobsTx - marshal: %w", marshalErr)
-		}
-
 		sql, args, err = builder.
 			Insert("reminder_jobs").
-			Columns("id, user_id, important_day_id, reminder_rule_id, occurrence_date, offset_days, channels, scheduled_at, status, attempts, last_error, locked_until, sent_at, created_at, updated_at").
+			Columns("id, user_id, important_day_id, reminder_rule_id, occurrence_date, offset_days, channel, scheduled_at, status, attempts, last_error, locked_until, sent_at, created_at, updated_at").
 			Values(
 				job.ID,
 				job.UserID,
@@ -408,7 +403,7 @@ func replacePendingReminderJobsTx(ctx context.Context, builder sq.StatementBuild
 				job.ReminderRuleID,
 				job.OccurrenceDate,
 				job.OffsetDays,
-				channels,
+				job.Channel,
 				job.ScheduledAt,
 				job.Status,
 				job.Attempts,
@@ -418,7 +413,7 @@ func replacePendingReminderJobsTx(ctx context.Context, builder sq.StatementBuild
 				job.CreatedAt,
 				job.UpdatedAt,
 			).
-			Suffix("ON CONFLICT (important_day_id, occurrence_date, offset_days) DO UPDATE SET channels = EXCLUDED.channels, scheduled_at = EXCLUDED.scheduled_at, status = EXCLUDED.status, attempts = 0, last_error = '', locked_until = NULL, sent_at = NULL, updated_at = EXCLUDED.updated_at").
+			Suffix("ON CONFLICT (important_day_id, occurrence_date, offset_days, channel) DO UPDATE SET scheduled_at = EXCLUDED.scheduled_at, status = EXCLUDED.status, attempts = 0, last_error = '', locked_until = NULL, sent_at = NULL, updated_at = EXCLUDED.updated_at").
 			ToSql()
 		if err != nil {
 			return fmt.Errorf("ImportantDayRepo - replacePendingReminderJobsTx - insert builder: %w", err)

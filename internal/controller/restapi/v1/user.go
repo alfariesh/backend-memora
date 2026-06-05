@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/alfariesh/backend-memora/internal/controller/restapi/v1/request"
-	_ "github.com/alfariesh/backend-memora/internal/controller/restapi/v1/response" // for swaggo
+	"github.com/alfariesh/backend-memora/internal/controller/restapi/v1/response"
 	"github.com/alfariesh/backend-memora/internal/entity"
 	"github.com/gofiber/fiber/v2"
 )
@@ -84,7 +84,7 @@ func (r *V1) login(ctx *fiber.Ctx) error {
 		return validationErrorResponse(ctx, err)
 	}
 
-	tokens, err := r.u.Login(ctx.UserContext(), body.Email, body.Password)
+	tokens, err := r.u.Login(ctx.UserContext(), body.Email, body.Password, sessionMetadataFromContext(ctx))
 	if err != nil {
 		r.l.Error(err, "restapi - v1 - login")
 
@@ -130,11 +130,11 @@ func (r *V1) refreshToken(ctx *fiber.Ctx) error {
 		return validationErrorResponse(ctx, err)
 	}
 
-	tokens, err := r.u.Refresh(ctx.UserContext(), body.RefreshToken)
+	tokens, err := r.u.Refresh(ctx.UserContext(), body.RefreshToken, sessionMetadataFromContext(ctx))
 	if err != nil {
 		r.l.Error(err, "restapi - v1 - refreshToken")
 
-		if errors.Is(err, entity.ErrInvalidRefreshToken) {
+		if errors.Is(err, entity.ErrInvalidRefreshToken) || errors.Is(err, entity.ErrRefreshTokenReuse) {
 			return errorResponse(ctx, http.StatusUnauthorized, "invalid refresh token")
 		}
 
@@ -179,6 +179,89 @@ func (r *V1) logout(ctx *fiber.Ctx) error {
 	return ctx.SendStatus(http.StatusNoContent)
 }
 
+// @Summary     List active sessions
+// @Description List current user's active refresh sessions
+// @ID          list-sessions
+// @Tags        auth
+// @Produce     json
+// @Success     200 {object} response.UserSessionList
+// @Failure     401 {object} response.Error
+// @Failure     500 {object} response.Error
+// @Security    BearerAuth
+// @Router      /auth/sessions [get]
+func (r *V1) listSessions(ctx *fiber.Ctx) error {
+	userID, ok := currentUserID(ctx)
+	if !ok {
+		return errorResponse(ctx, http.StatusUnauthorized, "unauthorized")
+	}
+
+	sessions, err := r.u.ListSessions(ctx.UserContext(), userID)
+	if err != nil {
+		r.l.Error(err, "restapi - v1 - listSessions")
+
+		return errorResponse(ctx, http.StatusInternalServerError, "internal server error")
+	}
+
+	return ctx.Status(http.StatusOK).JSON(response.UserSessionList{
+		Sessions: sessions,
+		Total:    len(sessions),
+	})
+}
+
+// @Summary     Revoke session
+// @Description Revoke one active session owned by current user
+// @ID          revoke-session
+// @Tags        auth
+// @Param       id path string true "Session ID"
+// @Success     204
+// @Failure     401 {object} response.Error
+// @Failure     404 {object} response.Error
+// @Failure     500 {object} response.Error
+// @Security    BearerAuth
+// @Router      /auth/sessions/{id} [delete]
+func (r *V1) revokeSession(ctx *fiber.Ctx) error {
+	userID, ok := currentUserID(ctx)
+	if !ok {
+		return errorResponse(ctx, http.StatusUnauthorized, "unauthorized")
+	}
+
+	if err := r.u.RevokeSession(ctx.UserContext(), userID, ctx.Params("id")); err != nil {
+		r.l.Error(err, "restapi - v1 - revokeSession")
+
+		if errors.Is(err, entity.ErrSessionNotFound) {
+			return errorResponse(ctx, http.StatusNotFound, "session not found")
+		}
+
+		return errorResponse(ctx, http.StatusInternalServerError, "internal server error")
+	}
+
+	return ctx.SendStatus(http.StatusNoContent)
+}
+
+// @Summary     Logout all sessions
+// @Description Revoke all active sessions owned by current user
+// @ID          logout-all
+// @Tags        auth
+// @Success     204
+// @Failure     401 {object} response.Error
+// @Failure     500 {object} response.Error
+// @Security    BearerAuth
+// @Router      /auth/logout-all [post]
+func (r *V1) logoutAll(ctx *fiber.Ctx) error {
+	userID, ok := currentUserID(ctx)
+	if !ok {
+		return errorResponse(ctx, http.StatusUnauthorized, "unauthorized")
+	}
+
+	if err := r.u.LogoutAll(ctx.UserContext(), userID); err != nil {
+		r.l.Error(err, "restapi - v1 - logoutAll")
+
+		return errorResponse(ctx, http.StatusInternalServerError, "internal server error")
+	}
+
+	return ctx.SendStatus(http.StatusNoContent)
+}
+
 // @Summary     Get profile
 // @Description Get current user profile
 // @ID          profile
@@ -191,7 +274,7 @@ func (r *V1) logout(ctx *fiber.Ctx) error {
 // @Security    BearerAuth
 // @Router      /user/profile [get]
 func (r *V1) profile(ctx *fiber.Ctx) error {
-	userID, ok := ctx.Locals("userID").(string)
+	userID, ok := currentUserID(ctx)
 	if !ok {
 		return errorResponse(ctx, http.StatusUnauthorized, "unauthorized")
 	}
@@ -208,6 +291,70 @@ func (r *V1) profile(ctx *fiber.Ctx) error {
 	}
 
 	return ctx.Status(http.StatusOK).JSON(user)
+}
+
+// @Summary     Change password
+// @Description Change current user's password, revoke old sessions, and issue a new session
+// @ID          change-password
+// @Tags        user
+// @Accept      json
+// @Produce     json
+// @Param       request body     request.ChangePassword true "Password change data"
+// @Success     200     {object} entity.AuthTokens
+// @Failure     400     {object} response.Error
+// @Failure     401     {object} response.Error
+// @Failure     404     {object} response.Error
+// @Failure     500     {object} response.Error
+// @Security    BearerAuth
+// @Router      /user/password [post]
+func (r *V1) changePassword(ctx *fiber.Ctx) error {
+	userID, ok := currentUserID(ctx)
+	if !ok {
+		return errorResponse(ctx, http.StatusUnauthorized, "unauthorized")
+	}
+
+	var body request.ChangePassword
+	if err := ctx.BodyParser(&body); err != nil {
+		r.l.Error(err, "restapi - v1 - changePassword")
+
+		return errorResponse(ctx, http.StatusBadRequest, "invalid request body")
+	}
+
+	if err := r.v.Struct(body); err != nil {
+		r.l.Error(err, "restapi - v1 - changePassword")
+
+		return validationErrorResponse(ctx, err)
+	}
+
+	tokens, err := r.u.ChangePassword(ctx.UserContext(), userID, body.CurrentPassword, body.NewPassword, sessionMetadataFromContext(ctx))
+	if err != nil {
+		r.l.Error(err, "restapi - v1 - changePassword")
+
+		switch {
+		case errors.Is(err, entity.ErrInvalidUserInput):
+			return errorResponse(ctx, http.StatusBadRequest, "invalid user input")
+		case errors.Is(err, entity.ErrInvalidCredentials):
+			return errorResponse(ctx, http.StatusUnauthorized, "invalid credentials")
+		case errors.Is(err, entity.ErrUserNotFound):
+			return errorResponse(ctx, http.StatusNotFound, "user not found")
+		default:
+			return errorResponse(ctx, http.StatusInternalServerError, "internal server error")
+		}
+	}
+
+	return ctx.Status(http.StatusOK).JSON(tokens)
+}
+
+func currentUserID(ctx *fiber.Ctx) (string, bool) {
+	userID, ok := ctx.Locals("userID").(string)
+	return userID, ok && userID != ""
+}
+
+func sessionMetadataFromContext(ctx *fiber.Ctx) entity.SessionMetadata {
+	return entity.NormalizeSessionMetadata(entity.SessionMetadata{
+		IP:        ctx.IP(),
+		UserAgent: ctx.Get("User-Agent"),
+	})
 }
 
 // @Summary     Get user settings

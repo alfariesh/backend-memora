@@ -29,8 +29,8 @@ Swagger generated:
 ## Module Docs
 
 - [Common Contract](common.md): header, auth, error shape, pagination, format tanggal/waktu, status code.
-- [Auth](auth.md): register, login, refresh token, logout, token lifecycle.
-- [User Profile And Settings](user.md): profile, reminder defaults, notification channel preferences.
+- [Auth](auth.md): register, login, refresh token, logout, session lifecycle.
+- [User Profile And Settings](user.md): profile, change password, reminder defaults, notification channel preferences.
 - [Important Days](important-days.md): CRUD tanggal penting, enum type, upcoming calculation, date rules.
 - [Reminder Rules](reminders.md): aturan reminder per important day, default offsets/channels, schedule behavior.
 - [Devices And Push](devices.md): registrasi Expo token, test push, deactivate device.
@@ -61,7 +61,7 @@ Register or Login
 
 - Semua protected endpoint wajib mengirim `Authorization: Bearer <access_token>`.
 - `token` dan `access_token` di response auth berisi JWT yang sama. Pakai `access_token` untuk client baru.
-- Refresh token di-rotate. Setelah `POST /auth/refresh` sukses, refresh token lama harus dibuang.
+- Refresh token di-rotate. Setelah `POST /auth/refresh` sukses, refresh token lama harus dibuang; jangan jalankan refresh paralel dengan token yang sama.
 - Timestamp response memakai RFC3339 UTC, contoh `2026-01-01T00:00:00Z`.
 - `event_month` dan `event_day` adalah date-only data, bukan timestamp.
 - `reminder_time` memakai format 24 jam `HH:mm`, contoh `09:00`.

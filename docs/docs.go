@@ -118,6 +118,38 @@ const docTemplate = `{
                 }
             }
         },
+        "/auth/logout-all": {
+            "post": {
+                "description": "Revoke all active sessions owned by current user",
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Logout all sessions",
+                "operationId": "logout-all",
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
         "/auth/refresh": {
             "post": {
                 "description": "Rotate refresh token and issue a new access token",
@@ -234,6 +266,91 @@ const docTemplate = `{
                         }
                     }
                 }
+            }
+        },
+        "/auth/sessions": {
+            "get": {
+                "description": "List current user's active refresh sessions",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "List active sessions",
+                "operationId": "list-sessions",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/v1.UserSessionList"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/auth/sessions/{id}": {
+            "delete": {
+                "description": "Revoke one active session owned by current user",
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Revoke session",
+                "operationId": "revoke-session",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
             }
         },
         "/devices": {
@@ -1199,6 +1316,70 @@ const docTemplate = `{
                 ]
             }
         },
+        "/user/password": {
+            "post": {
+                "description": "Change current user's password, revoke old sessions, and issue a new session",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "Change password",
+                "operationId": "change-password",
+                "parameters": [
+                    {
+                        "description": "Password change data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/v1.ChangePassword"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entity.AuthTokens"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
         "/user/profile": {
             "get": {
                 "description": "Get current user profile",
@@ -1722,6 +1903,46 @@ const docTemplate = `{
                 }
             }
         },
+        "entity.UserSessionView": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string",
+                    "example": "2026-01-01T00:00:00Z"
+                },
+                "created_ip": {
+                    "type": "string",
+                    "example": "127.0.0.1"
+                },
+                "created_user_agent": {
+                    "type": "string",
+                    "example": "Memora/1.0"
+                },
+                "expires_at": {
+                    "type": "string",
+                    "example": "2026-01-31T00:00:00Z"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "550e8400-e29b-41d4-a716-446655440000"
+                },
+                "last_used_at": {
+                    "type": "string"
+                },
+                "last_used_ip": {
+                    "type": "string",
+                    "example": "127.0.0.1"
+                },
+                "last_used_user_agent": {
+                    "type": "string",
+                    "example": "Memora/1.0"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "example": "2026-01-01T00:00:00Z"
+                }
+            }
+        },
         "entity.UserSettings": {
             "type": "object",
             "properties": {
@@ -1753,6 +1974,26 @@ const docTemplate = `{
                 "user_id": {
                     "type": "string",
                     "example": "550e8400-e29b-41d4-a716-446655440000"
+                }
+            }
+        },
+        "v1.ChangePassword": {
+            "type": "object",
+            "required": [
+                "current_password",
+                "new_password"
+            ],
+            "properties": {
+                "current_password": {
+                    "type": "string",
+                    "maxLength": 72,
+                    "example": "secret123"
+                },
+                "new_password": {
+                    "type": "string",
+                    "maxLength": 72,
+                    "minLength": 8,
+                    "example": "newsecret123"
                 }
             }
         },
@@ -2176,6 +2417,21 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 64,
                     "example": "Asia/Jakarta"
+                }
+            }
+        },
+        "v1.UserSessionList": {
+            "type": "object",
+            "properties": {
+                "sessions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entity.UserSessionView"
+                    }
+                },
+                "total": {
+                    "type": "integer",
+                    "example": 2
                 }
             }
         }

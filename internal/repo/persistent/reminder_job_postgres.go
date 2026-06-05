@@ -8,9 +8,10 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/alfariesh/backend-memora/internal/entity"
 	"github.com/alfariesh/backend-memora/pkg/postgres"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
-const reminderJobColumns = "id, user_id, important_day_id, reminder_rule_id, occurrence_date, offset_days, channels, scheduled_at, status, attempts, last_error, locked_until, sent_at, created_at, updated_at"
+const reminderJobColumns = "id, user_id, important_day_id, reminder_rule_id, occurrence_date, offset_days, channel, scheduled_at, status, attempts, last_error, locked_until, sent_at, created_at, updated_at"
 
 // ReminderJobRepo -.
 type ReminderJobRepo struct {
@@ -24,14 +25,9 @@ func NewReminderJobRepo(pg *postgres.Postgres) *ReminderJobRepo {
 
 // Store -.
 func (r *ReminderJobRepo) Store(ctx context.Context, job *entity.ReminderJob) error {
-	channels, err := marshalChannels(job.Channels)
-	if err != nil {
-		return fmt.Errorf("ReminderJobRepo - Store - marshal: %w", err)
-	}
-
 	sql, args, err := r.Builder.
 		Insert("reminder_jobs").
-		Columns("id, user_id, important_day_id, reminder_rule_id, occurrence_date, offset_days, channels, scheduled_at, status, attempts, last_error, locked_until, sent_at, created_at, updated_at").
+		Columns("id, user_id, important_day_id, reminder_rule_id, occurrence_date, offset_days, channel, scheduled_at, status, attempts, last_error, locked_until, sent_at, created_at, updated_at").
 		Values(
 			job.ID,
 			job.UserID,
@@ -39,7 +35,7 @@ func (r *ReminderJobRepo) Store(ctx context.Context, job *entity.ReminderJob) er
 			job.ReminderRuleID,
 			job.OccurrenceDate,
 			job.OffsetDays,
-			channels,
+			job.Channel,
 			job.ScheduledAt,
 			job.Status,
 			job.Attempts,
@@ -49,7 +45,7 @@ func (r *ReminderJobRepo) Store(ctx context.Context, job *entity.ReminderJob) er
 			job.CreatedAt,
 			job.UpdatedAt,
 		).
-		Suffix("ON CONFLICT (important_day_id, occurrence_date, offset_days) DO NOTHING").
+		Suffix("ON CONFLICT (important_day_id, occurrence_date, offset_days, channel) DO NOTHING").
 		ToSql()
 	if err != nil {
 		return fmt.Errorf("ReminderJobRepo - Store - r.Builder: %w", err)
@@ -129,27 +125,54 @@ RETURNING ` + reminderJobColumns
 	return jobs, nil
 }
 
-// MarkSent -.
-func (r *ReminderJobRepo) MarkSent(ctx context.Context, id string, sentAt time.Time) error {
+// FinishWithNext marks a due job complete and schedules the next occurrence atomically.
+func (r *ReminderJobRepo) FinishWithNext(
+	ctx context.Context,
+	id string,
+	status entity.ReminderJobStatus,
+	finishedAt time.Time,
+	lastError string,
+	nextJob entity.ReminderJob,
+) (err error) {
+	tx, err := r.Pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("ReminderJobRepo - FinishWithNext - Begin: %w", err)
+	}
+	defer rollbackTx(ctx, tx, &err, "ReminderJobRepo - FinishWithNext - Rollback")
+
+	var sentAt any
+	if status == entity.ReminderJobStatusSent {
+		sentAt = finishedAt
+	}
+
 	sql, args, err := r.Builder.
 		Update("reminder_jobs").
-		Set("status", entity.ReminderJobStatusSent).
+		Set("status", status).
+		Set("last_error", lastError).
 		Set("sent_at", sentAt).
 		Set("locked_until", nil).
-		Set("updated_at", sentAt).
+		Set("updated_at", finishedAt).
 		Where(sq.Eq{"id": id}).
 		ToSql()
 	if err != nil {
-		return fmt.Errorf("ReminderJobRepo - MarkSent - r.Builder: %w", err)
+		return fmt.Errorf("ReminderJobRepo - FinishWithNext - update builder: %w", err)
 	}
 
-	result, err := r.Pool.Exec(ctx, sql, args...)
+	result, err := tx.Exec(ctx, sql, args...)
 	if err != nil {
-		return fmt.Errorf("ReminderJobRepo - MarkSent - r.Pool.Exec: %w", err)
+		return fmt.Errorf("ReminderJobRepo - FinishWithNext - update: %w", err)
 	}
 
 	if result.RowsAffected() == 0 {
 		return entity.ErrReminderJobNotFound
+	}
+
+	if err = insertReminderJobTx(ctx, r.Builder, tx, nextJob, "ON CONFLICT (important_day_id, occurrence_date, offset_days, channel) DO NOTHING"); err != nil {
+		return fmt.Errorf("ReminderJobRepo - FinishWithNext - insertReminderJobTx: %w", err)
+	}
+
+	if err = tx.Commit(ctx); err != nil {
+		return fmt.Errorf("ReminderJobRepo - FinishWithNext - Commit: %w", err)
 	}
 
 	return nil
@@ -188,11 +211,50 @@ func (r *ReminderJobRepo) MarkFailed(ctx context.Context, id, reason string, ret
 	return nil
 }
 
+func insertReminderJobTx(ctx context.Context, builder sq.StatementBuilderType, tx sqExecer, job entity.ReminderJob, conflictSuffix string) error {
+	sqlBuilder := builder.
+		Insert("reminder_jobs").
+		Columns("id, user_id, important_day_id, reminder_rule_id, occurrence_date, offset_days, channel, scheduled_at, status, attempts, last_error, locked_until, sent_at, created_at, updated_at").
+		Values(
+			job.ID,
+			job.UserID,
+			job.ImportantDayID,
+			job.ReminderRuleID,
+			job.OccurrenceDate,
+			job.OffsetDays,
+			job.Channel,
+			job.ScheduledAt,
+			job.Status,
+			job.Attempts,
+			job.LastError,
+			job.LockedUntil,
+			job.SentAt,
+			job.CreatedAt,
+			job.UpdatedAt,
+		)
+
+	if conflictSuffix != "" {
+		sqlBuilder = sqlBuilder.Suffix(conflictSuffix)
+	}
+
+	sql, args, err := sqlBuilder.ToSql()
+	if err != nil {
+		return fmt.Errorf("ReminderJobRepo - insertReminderJobTx - builder: %w", err)
+	}
+
+	if _, err = tx.Exec(ctx, sql, args...); err != nil {
+		return fmt.Errorf("ReminderJobRepo - insertReminderJobTx - exec: %w", err)
+	}
+
+	return nil
+}
+
+type sqExecer interface {
+	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
+}
+
 func scanReminderJob(row scanner) (entity.ReminderJob, error) {
-	var (
-		job         entity.ReminderJob
-		channelsRaw []byte
-	)
+	var job entity.ReminderJob
 
 	err := row.Scan(
 		&job.ID,
@@ -201,7 +263,7 @@ func scanReminderJob(row scanner) (entity.ReminderJob, error) {
 		&job.ReminderRuleID,
 		&job.OccurrenceDate,
 		&job.OffsetDays,
-		&channelsRaw,
+		&job.Channel,
 		&job.ScheduledAt,
 		&job.Status,
 		&job.Attempts,
@@ -211,11 +273,6 @@ func scanReminderJob(row scanner) (entity.ReminderJob, error) {
 		&job.CreatedAt,
 		&job.UpdatedAt,
 	)
-	if err != nil {
-		return entity.ReminderJob{}, err
-	}
-
-	job.Channels, err = unmarshalChannels(channelsRaw)
 	if err != nil {
 		return entity.ReminderJob{}, err
 	}

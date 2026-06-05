@@ -42,6 +42,21 @@ func (m *MockUser) EXPECT() *MockUserMockRecorder {
 	return m.recorder
 }
 
+// ChangePassword mocks base method.
+func (m *MockUser) ChangePassword(ctx context.Context, userID, currentPassword, newPassword string, metadata entity.SessionMetadata) (entity.AuthTokens, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ChangePassword", ctx, userID, currentPassword, newPassword, metadata)
+	ret0, _ := ret[0].(entity.AuthTokens)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ChangePassword indicates an expected call of ChangePassword.
+func (mr *MockUserMockRecorder) ChangePassword(ctx, userID, currentPassword, newPassword, metadata any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ChangePassword", reflect.TypeOf((*MockUser)(nil).ChangePassword), ctx, userID, currentPassword, newPassword, metadata)
+}
+
 // GetUser mocks base method.
 func (m *MockUser) GetUser(ctx context.Context, userID string) (entity.User, error) {
 	m.ctrl.T.Helper()
@@ -57,19 +72,49 @@ func (mr *MockUserMockRecorder) GetUser(ctx, userID any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUser", reflect.TypeOf((*MockUser)(nil).GetUser), ctx, userID)
 }
 
-// Login mocks base method.
-func (m *MockUser) Login(ctx context.Context, email, password string) (entity.AuthTokens, error) {
+// ListSessions mocks base method.
+func (m *MockUser) ListSessions(ctx context.Context, userID string) ([]entity.UserSessionView, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Login", ctx, email, password)
+	ret := m.ctrl.Call(m, "ListSessions", ctx, userID)
+	ret0, _ := ret[0].([]entity.UserSessionView)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListSessions indicates an expected call of ListSessions.
+func (mr *MockUserMockRecorder) ListSessions(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSessions", reflect.TypeOf((*MockUser)(nil).ListSessions), ctx, userID)
+}
+
+// Login mocks base method.
+func (m *MockUser) Login(ctx context.Context, email, password string, metadata entity.SessionMetadata) (entity.AuthTokens, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Login", ctx, email, password, metadata)
 	ret0, _ := ret[0].(entity.AuthTokens)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Login indicates an expected call of Login.
-func (mr *MockUserMockRecorder) Login(ctx, email, password any) *gomock.Call {
+func (mr *MockUserMockRecorder) Login(ctx, email, password, metadata any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Login", reflect.TypeOf((*MockUser)(nil).Login), ctx, email, password)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Login", reflect.TypeOf((*MockUser)(nil).Login), ctx, email, password, metadata)
+}
+
+// LoginAccessOnly mocks base method.
+func (m *MockUser) LoginAccessOnly(ctx context.Context, email, password string) (entity.AuthTokens, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LoginAccessOnly", ctx, email, password)
+	ret0, _ := ret[0].(entity.AuthTokens)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// LoginAccessOnly indicates an expected call of LoginAccessOnly.
+func (mr *MockUserMockRecorder) LoginAccessOnly(ctx, email, password any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoginAccessOnly", reflect.TypeOf((*MockUser)(nil).LoginAccessOnly), ctx, email, password)
 }
 
 // Logout mocks base method.
@@ -86,19 +131,33 @@ func (mr *MockUserMockRecorder) Logout(ctx, refreshToken any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Logout", reflect.TypeOf((*MockUser)(nil).Logout), ctx, refreshToken)
 }
 
-// Refresh mocks base method.
-func (m *MockUser) Refresh(ctx context.Context, refreshToken string) (entity.AuthTokens, error) {
+// LogoutAll mocks base method.
+func (m *MockUser) LogoutAll(ctx context.Context, userID string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Refresh", ctx, refreshToken)
+	ret := m.ctrl.Call(m, "LogoutAll", ctx, userID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// LogoutAll indicates an expected call of LogoutAll.
+func (mr *MockUserMockRecorder) LogoutAll(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LogoutAll", reflect.TypeOf((*MockUser)(nil).LogoutAll), ctx, userID)
+}
+
+// Refresh mocks base method.
+func (m *MockUser) Refresh(ctx context.Context, refreshToken string, metadata entity.SessionMetadata) (entity.AuthTokens, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Refresh", ctx, refreshToken, metadata)
 	ret0, _ := ret[0].(entity.AuthTokens)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Refresh indicates an expected call of Refresh.
-func (mr *MockUserMockRecorder) Refresh(ctx, refreshToken any) *gomock.Call {
+func (mr *MockUserMockRecorder) Refresh(ctx, refreshToken, metadata any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Refresh", reflect.TypeOf((*MockUser)(nil).Refresh), ctx, refreshToken)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Refresh", reflect.TypeOf((*MockUser)(nil).Refresh), ctx, refreshToken, metadata)
 }
 
 // Register mocks base method.
@@ -114,6 +173,20 @@ func (m *MockUser) Register(ctx context.Context, username, email, password strin
 func (mr *MockUserMockRecorder) Register(ctx, username, email, password any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Register", reflect.TypeOf((*MockUser)(nil).Register), ctx, username, email, password)
+}
+
+// RevokeSession mocks base method.
+func (m *MockUser) RevokeSession(ctx context.Context, userID, sessionID string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RevokeSession", ctx, userID, sessionID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RevokeSession indicates an expected call of RevokeSession.
+func (mr *MockUserMockRecorder) RevokeSession(ctx, userID, sessionID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeSession", reflect.TypeOf((*MockUser)(nil).RevokeSession), ctx, userID, sessionID)
 }
 
 // MockUserSettings is a mock of UserSettings interface.

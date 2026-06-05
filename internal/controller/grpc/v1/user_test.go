@@ -40,7 +40,11 @@ func (s *authUserStub) Register(_ context.Context, username, email, _ string) (e
 	}, nil
 }
 
-func (s *authUserStub) Login(_ context.Context, email, _ string) (entity.AuthTokens, error) {
+func (s *authUserStub) Login(_ context.Context, email, _ string, _ entity.SessionMetadata) (entity.AuthTokens, error) {
+	return s.LoginAccessOnly(context.Background(), email, "")
+}
+
+func (s *authUserStub) LoginAccessOnly(_ context.Context, email, _ string) (entity.AuthTokens, error) {
 	s.loginCalled = true
 	s.loginEmail = email
 
@@ -51,7 +55,7 @@ func (s *authUserStub) Login(_ context.Context, email, _ string) (entity.AuthTok
 	return entity.AuthTokens{AccessToken: "access-token"}, nil
 }
 
-func (s *authUserStub) Refresh(_ context.Context, _ string) (entity.AuthTokens, error) {
+func (s *authUserStub) Refresh(_ context.Context, _ string, _ entity.SessionMetadata) (entity.AuthTokens, error) {
 	return entity.AuthTokens{}, nil
 }
 
@@ -61,6 +65,28 @@ func (s *authUserStub) Logout(_ context.Context, _ string) error {
 
 func (s *authUserStub) GetUser(_ context.Context, _ string) (entity.User, error) {
 	return entity.User{}, nil
+}
+
+func (s *authUserStub) ListSessions(_ context.Context, _ string) ([]entity.UserSessionView, error) {
+	return nil, nil
+}
+
+func (s *authUserStub) RevokeSession(_ context.Context, _, _ string) error {
+	return nil
+}
+
+func (s *authUserStub) LogoutAll(_ context.Context, _ string) error {
+	return nil
+}
+
+func (s *authUserStub) ChangePassword(
+	_ context.Context,
+	_,
+	_,
+	_ string,
+	_ entity.SessionMetadata,
+) (entity.AuthTokens, error) {
+	return entity.AuthTokens{}, nil
 }
 
 func TestAuthControllerRegisterValidation(t *testing.T) {
