@@ -63,7 +63,7 @@ EXPO_PUSH_ACCESS_TOKEN=
 
 ## API Docs
 
-- REST and product API notes: [docs/api/memora.md](docs/api/memora.md)
+- FE-facing REST API guide: [docs/api/README.md](docs/api/README.md)
 - OpenAPI generated docs: [docs/swagger.yaml](docs/swagger.yaml)
 - gRPC proto files: [docs/proto/v1](docs/proto/v1)
 
