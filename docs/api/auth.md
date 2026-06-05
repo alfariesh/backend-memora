@@ -78,9 +78,9 @@ Errors:
 
 | Status | Body |
 | --- | --- |
-| `400` | `{ "error": "invalid request body" }` |
-| `409` | `{ "error": "user already exists" }` |
-| `500` | `{ "error": "internal server error" }` |
+| `400` | `validation_error` atau `invalid_request_body` |
+| `409` | `user_already_exists` |
+| `500` | `internal_server_error` |
 
 ## Login
 
@@ -120,9 +120,9 @@ Errors:
 
 | Status | Body |
 | --- | --- |
-| `400` | `{ "error": "invalid request body" }` |
-| `401` | `{ "error": "invalid credentials" }` |
-| `500` | `{ "error": "internal server error" }` |
+| `400` | `validation_error` atau `invalid_request_body` |
+| `401` | `invalid_credentials` |
+| `500` | `internal_server_error` |
 
 ## Refresh Token
 
@@ -161,9 +161,9 @@ Errors:
 
 | Status | Body |
 | --- | --- |
-| `400` | `{ "error": "invalid request body" }` |
-| `401` | `{ "error": "invalid refresh token" }` |
-| `500` | `{ "error": "internal server error" }` |
+| `400` | `validation_error` atau `invalid_request_body` |
+| `401` | `invalid_refresh_token` |
+| `500` | `internal_server_error` |
 
 ## Logout
 
@@ -197,8 +197,8 @@ Errors:
 
 | Status | Body |
 | --- | --- |
-| `400` | `{ "error": "invalid request body" }` |
-| `500` | `{ "error": "internal server error" }` |
+| `400` | `validation_error` atau `invalid_request_body` |
+| `500` | `internal_server_error` |
 
 ## Auth Header For Protected Calls
 

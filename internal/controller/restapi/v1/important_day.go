@@ -41,7 +41,7 @@ func (r *V1) createImportantDay(ctx *fiber.Ctx) error {
 	if err := r.v.Struct(body); err != nil {
 		r.l.Error(err, "restapi - v1 - createImportantDay")
 
-		return errorResponse(ctx, http.StatusBadRequest, "invalid request body")
+		return validationErrorResponse(ctx, err)
 	}
 
 	day, err := r.id.Create(ctx.UserContext(), userID, body.ToParams())
@@ -209,7 +209,7 @@ func (r *V1) updateImportantDay(ctx *fiber.Ctx) error {
 	if err := r.v.Struct(body); err != nil {
 		r.l.Error(err, "restapi - v1 - updateImportantDay")
 
-		return errorResponse(ctx, http.StatusBadRequest, "invalid request body")
+		return validationErrorResponse(ctx, err)
 	}
 
 	day, err := r.id.Update(ctx.UserContext(), userID, ctx.Params("id"), body.ToParams())
@@ -261,7 +261,7 @@ func (r *V1) replaceImportantDayReminders(ctx *fiber.Ctx) error {
 	if err := r.v.Struct(body); err != nil {
 		r.l.Error(err, "restapi - v1 - replaceImportantDayReminders")
 
-		return errorResponse(ctx, http.StatusBadRequest, "invalid request body")
+		return validationErrorResponse(ctx, err)
 	}
 
 	rules, err := r.id.ReplaceReminderRules(ctx.UserContext(), userID, ctx.Params("id"), body.ToParams())

@@ -34,7 +34,7 @@ func (r *V1) register(ctx *fiber.Ctx) error {
 	if err := r.v.Struct(body); err != nil {
 		r.l.Error(err, "restapi - v1 - register")
 
-		return errorResponse(ctx, http.StatusBadRequest, "invalid request body")
+		return validationErrorResponse(ctx, err)
 	}
 
 	user, err := r.u.Register(ctx.UserContext(), body.Username, body.Email, body.Password)
@@ -75,7 +75,7 @@ func (r *V1) login(ctx *fiber.Ctx) error {
 	if err := r.v.Struct(body); err != nil {
 		r.l.Error(err, "restapi - v1 - login")
 
-		return errorResponse(ctx, http.StatusBadRequest, "invalid request body")
+		return validationErrorResponse(ctx, err)
 	}
 
 	tokens, err := r.u.Login(ctx.UserContext(), body.Email, body.Password)
@@ -116,7 +116,7 @@ func (r *V1) refreshToken(ctx *fiber.Ctx) error {
 	if err := r.v.Struct(body); err != nil {
 		r.l.Error(err, "restapi - v1 - refreshToken")
 
-		return errorResponse(ctx, http.StatusBadRequest, "invalid request body")
+		return validationErrorResponse(ctx, err)
 	}
 
 	tokens, err := r.u.Refresh(ctx.UserContext(), body.RefreshToken)
@@ -156,7 +156,7 @@ func (r *V1) logout(ctx *fiber.Ctx) error {
 	if err := r.v.Struct(body); err != nil {
 		r.l.Error(err, "restapi - v1 - logout")
 
-		return errorResponse(ctx, http.StatusBadRequest, "invalid request body")
+		return validationErrorResponse(ctx, err)
 	}
 
 	if err := r.u.Logout(ctx.UserContext(), body.RefreshToken); err != nil {
@@ -254,7 +254,7 @@ func (r *V1) updateUserSettings(ctx *fiber.Ctx) error {
 	if err := r.v.Struct(body); err != nil {
 		r.l.Error(err, "restapi - v1 - updateUserSettings")
 
-		return errorResponse(ctx, http.StatusBadRequest, "invalid request body")
+		return validationErrorResponse(ctx, err)
 	}
 
 	settings, err := r.us.Update(ctx.UserContext(), userID, body.ToParams())

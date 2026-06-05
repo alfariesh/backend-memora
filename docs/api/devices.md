@@ -89,7 +89,7 @@ Errors:
 | Status | Body |
 | --- | --- |
 | `401` | Auth error. |
-| `500` | `{ "error": "internal server error" }` |
+| `500` | `internal_server_error` |
 
 ## Register Device
 
@@ -142,9 +142,9 @@ Errors:
 
 | Status | Body |
 | --- | --- |
-| `400` | `{ "error": "invalid request body" }` atau `{ "error": "invalid device token" }` |
+| `400` | `validation_error`, `invalid_request_body`, atau `invalid_device_token` |
 | `401` | Auth error. |
-| `500` | `{ "error": "internal server error" }` |
+| `500` | `internal_server_error` |
 
 ## Send Test Push
 
@@ -190,13 +190,13 @@ Errors:
 
 | Status | Body |
 | --- | --- |
-| `400` | `{ "error": "invalid request body" }` |
+| `400` | `validation_error` atau `invalid_request_body` |
 | `401` | Auth error. |
-| `404` | `{ "error": "device not found" }` |
-| `410` | `{ "error": "push device not registered" }` |
-| `502` | `{ "error": "push send failed" }` |
-| `503` | `{ "error": "push sender not configured" }` |
-| `500` | `{ "error": "internal server error" }` |
+| `404` | `device_not_found` |
+| `410` | `push_device_not_registered` |
+| `502` | `push_send_failed` |
+| `503` | `push_sender_not_configured` |
+| `500` | `internal_server_error` |
 
 If Expo returns `DeviceNotRegistered`, backend deactivates token and returns `410`.
 
@@ -224,8 +224,8 @@ Errors:
 | Status | Body |
 | --- | --- |
 | `401` | Auth error. |
-| `404` | `{ "error": "device not found" }` |
-| `500` | `{ "error": "internal server error" }` |
+| `404` | `device_not_found` |
+| `500` | `internal_server_error` |
 
 ## Expo Provider Notes
 

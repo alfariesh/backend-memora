@@ -5,7 +5,6 @@ import (
 	"github.com/alfariesh/backend-memora/internal/usecase"
 	"github.com/alfariesh/backend-memora/pkg/jwt"
 	"github.com/alfariesh/backend-memora/pkg/logger"
-	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -20,7 +19,7 @@ func NewRoutes(
 	jwtManager *jwt.Manager,
 	l logger.Interface,
 ) {
-	r := &V1{u: u, us: us, id: id, n: n, d: d, l: l, v: validator.New(validator.WithRequiredStructEnabled())}
+	r := &V1{u: u, us: us, id: id, n: n, d: d, l: l, v: newValidator()}
 
 	// Public routes
 	authGroup := apiV1Group.Group("/auth")

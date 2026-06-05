@@ -45,15 +45,24 @@ Semua endpoint lain protected.
 Middleware auth mengembalikan `401` dengan salah satu message ini:
 
 ```json
-{ "error": "missing authorization header" }
+{
+  "error": "missing_authorization_header",
+  "message": "missing authorization header"
+}
 ```
 
 ```json
-{ "error": "invalid authorization header format" }
+{
+  "error": "invalid_authorization_header",
+  "message": "invalid authorization header format"
+}
 ```
 
 ```json
-{ "error": "invalid or expired token" }
+{
+  "error": "invalid_or_expired_token",
+  "message": "invalid or expired token"
+}
 ```
 
 Format header harus persis `Bearer <token>`. `bearer`, token tanpa prefix, atau header kosong ditolak.
@@ -64,11 +73,42 @@ Semua error REST memakai shape:
 
 ```json
 {
-  "error": "message"
+  "error": "machine_readable_code",
+  "message": "human readable message",
+  "fields": {
+    "field_name": "field error message"
+  }
 }
 ```
 
-FE sebaiknya render berdasarkan status code dan `error`, bukan berdasarkan struktur lain.
+Rules:
+
+- `error` adalah machine-readable code dalam `snake_case`.
+- `message` adalah pesan singkat untuk debugging atau fallback UI.
+- `fields` hanya ada pada validation error.
+- FE sebaiknya branch logic berdasarkan status code dan `error`.
+
+Contoh non-validation error:
+
+```json
+{
+  "error": "invalid_credentials",
+  "message": "invalid credentials"
+}
+```
+
+Contoh validation error:
+
+```json
+{
+  "error": "validation_error",
+  "message": "validation failed",
+  "fields": {
+    "email": "must be a valid email",
+    "password": "is required"
+  }
+}
+```
 
 ## Common Status Codes
 
@@ -182,10 +222,38 @@ Fiber biasanya tidak strict terhadap slash, tetapi FE sebaiknya mengikuti path d
 
 ## Validation Messages
 
-Backend saat ini mengembalikan message generic untuk banyak validation error, misalnya:
+Validation error memakai body:
 
 ```json
-{ "error": "invalid request body" }
+{
+  "error": "validation_error",
+  "message": "validation failed",
+  "fields": {
+    "username": "must be at least 3 characters",
+    "email": "must be a valid email",
+    "password": "is required"
+  }
+}
 ```
 
-Artinya FE perlu melakukan validasi client-side sendiri supaya user mendapat pesan field-level yang lebih jelas.
+Field names mengikuti JSON field, termasuk nested array path:
+
+```json
+{
+  "fields": {
+    "reminder_rules[0].offset_days": "must be at least 0",
+    "reminder_rules[0].channels[0]": "must be one of: email, in_app, push"
+  }
+}
+```
+
+JSON parse error tetap memakai error umum:
+
+```json
+{
+  "error": "invalid_request_body",
+  "message": "invalid request body"
+}
+```
+
+FE tetap disarankan melakukan validasi client-side agar user mendapat feedback sebelum submit.

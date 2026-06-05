@@ -14,6 +14,12 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+type apiErrorResponse struct {
+	Error   string            `json:"error"`
+	Message string            `json:"message"`
+	Fields  map[string]string `json:"fields"`
+}
+
 // HTTP POST: /v1/auth/register.
 func TestHTTPRegisterV1(t *testing.T) {
 	// Pre-register a user for the duplicate test case.
@@ -29,11 +35,13 @@ func TestHTTPRegisterV1(t *testing.T) {
 	}
 
 	tests := []struct {
-		description string
-		username    string
-		email       string
-		password    string
-		expected    int
+		description    string
+		username       string
+		email          string
+		password       string
+		expected       int
+		expectedError  string
+		expectedFields map[string]string
 	}{
 		{
 			description: "success",
@@ -43,25 +51,34 @@ func TestHTTPRegisterV1(t *testing.T) {
 			expected:    http.StatusCreated,
 		},
 		{
-			description: "duplicate email",
-			username:    name + "_dup2",
-			email:       dupEmail,
-			password:    testPassword,
-			expected:    http.StatusConflict,
+			description:   "duplicate email",
+			username:      name + "_dup2",
+			email:         dupEmail,
+			password:      testPassword,
+			expected:      http.StatusConflict,
+			expectedError: "user_already_exists",
 		},
 		{
-			description: "missing password",
-			username:    name + "_nopw",
-			email:       name + "_nopw@test.com",
-			password:    "",
-			expected:    http.StatusBadRequest,
+			description:   "missing password",
+			username:      name + "_nopw",
+			email:         name + "_nopw@test.com",
+			password:      "",
+			expected:      http.StatusBadRequest,
+			expectedError: "validation_error",
+			expectedFields: map[string]string{
+				"password": "is required",
+			},
 		},
 		{
-			description: "short username",
-			username:    "ab",
-			email:       name + "_short@test.com",
-			password:    testPassword,
-			expected:    http.StatusBadRequest,
+			description:   "short username",
+			username:      "ab",
+			email:         name + "_short@test.com",
+			password:      testPassword,
+			expected:      http.StatusBadRequest,
+			expectedError: "validation_error",
+			expectedFields: map[string]string{
+				"username": "must be at least 3 characters",
+			},
 		},
 	}
 
@@ -72,6 +89,19 @@ func TestHTTPRegisterV1(t *testing.T) {
 
 			if resp.StatusCode != tt.expected {
 				t.Errorf("Expected status %d, got %d", tt.expected, resp.StatusCode)
+			}
+
+			if tt.expectedError != "" {
+				result := parseJSON[apiErrorResponse](t, resp)
+				if result.Error != tt.expectedError {
+					t.Errorf("Expected error %q, got %q", tt.expectedError, result.Error)
+				}
+
+				for field, message := range tt.expectedFields {
+					if result.Fields[field] != message {
+						t.Errorf("Expected field %q error %q, got %q", field, message, result.Fields[field])
+					}
+				}
 			}
 		})
 	}

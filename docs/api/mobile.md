@@ -89,7 +89,7 @@ Errors:
 | Status | Body |
 | --- | --- |
 | `401` | Auth error. |
-| `500` | `{ "error": "internal server error" }` |
+| `500` | `internal_server_error` |
 
 ## Recommended FE Usage
 

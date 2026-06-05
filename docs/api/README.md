@@ -66,4 +66,4 @@ Register or Login
 - `event_month` dan `event_day` adalah date-only data, bukan timestamp.
 - `reminder_time` memakai format 24 jam `HH:mm`, contoh `09:00`.
 - `timezone` harus IANA timezone valid, contoh `Asia/Jakarta`.
-- Error body selalu berbentuk `{ "error": "message" }`.
+- Error body selalu punya `error` machine code dan `message`; validation error menambahkan `fields`.

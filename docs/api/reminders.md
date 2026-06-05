@@ -124,9 +124,9 @@ Errors:
 | Status | Body |
 | --- | --- |
 | `401` | Auth error. |
-| `403` | `{ "error": "forbidden" }` |
-| `404` | `{ "error": "important day not found" }` |
-| `500` | `{ "error": "internal server error" }` |
+| `403` | `forbidden` |
+| `404` | `important_day_not_found` |
+| `500` | `internal_server_error` |
 
 ## Replace Reminder Rules
 
@@ -189,10 +189,10 @@ Errors:
 
 | Status | Body |
 | --- | --- |
-| `400` | `{ "error": "invalid request body" }` |
+| `400` | `validation_error` atau `invalid_request_body` |
 | `401` | Auth error. |
-| `404` | `{ "error": "important day not found" }` |
-| `500` | `{ "error": "internal server error" }` |
+| `404` | `important_day_not_found` |
+| `500` | `internal_server_error` |
 
 ## Reminder Copy
 

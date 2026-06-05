@@ -93,7 +93,7 @@ Errors:
 | Status | Body |
 | --- | --- |
 | `401` | Auth error. |
-| `500` | `{ "error": "internal server error" }` |
+| `500` | `internal_server_error` |
 
 ## Unread Notification Count
 
@@ -117,7 +117,7 @@ Errors:
 | Status | Body |
 | --- | --- |
 | `401` | Auth error. |
-| `500` | `{ "error": "internal server error" }` |
+| `500` | `internal_server_error` |
 
 ## Mark Notification Read
 
@@ -152,8 +152,8 @@ Errors:
 | Status | Body |
 | --- | --- |
 | `401` | Auth error. |
-| `404` | `{ "error": "notification not found" }` |
-| `500` | `{ "error": "internal server error" }` |
+| `404` | `notification_not_found` |
+| `500` | `internal_server_error` |
 
 ## Mark All Notifications Read
 
@@ -178,7 +178,7 @@ Errors:
 | Status | Body |
 | --- | --- |
 | `401` | Auth error. |
-| `500` | `{ "error": "internal server error" }` |
+| `500` | `internal_server_error` |
 
 ## FE Notes
 

@@ -373,7 +373,14 @@ definitions:
   v1.Error:
     properties:
       error:
-        example: message
+        example: validation_error
+        type: string
+      fields:
+        additionalProperties:
+          type: string
+        type: object
+      message:
+        example: validation failed
         type: string
     type: object
   v1.ImportantDayList:

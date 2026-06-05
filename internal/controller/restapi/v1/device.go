@@ -68,7 +68,7 @@ func (r *V1) registerDevice(ctx *fiber.Ctx) error {
 	if err := r.v.Struct(body); err != nil {
 		r.l.Error(err, "restapi - v1 - registerDevice")
 
-		return errorResponse(ctx, http.StatusBadRequest, "invalid request body")
+		return validationErrorResponse(ctx, err)
 	}
 
 	token, err := r.d.Register(ctx.UserContext(), userID, body.Token, body.Platform, body.Name)
@@ -120,7 +120,7 @@ func (r *V1) testPush(ctx *fiber.Ctx) error {
 	if err := r.v.Struct(body); err != nil {
 		r.l.Error(err, "restapi - v1 - testPush")
 
-		return errorResponse(ctx, http.StatusBadRequest, "invalid request body")
+		return validationErrorResponse(ctx, err)
 	}
 
 	result, err := r.d.TestPush(ctx.UserContext(), userID, ctx.Params("id"), body.Title, body.Body)

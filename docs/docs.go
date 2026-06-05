@@ -1835,7 +1835,17 @@ const docTemplate = `{
             "properties": {
                 "error": {
                     "type": "string",
-                    "example": "message"
+                    "example": "validation_error"
+                },
+                "fields": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "message": {
+                    "type": "string",
+                    "example": "validation failed"
                 }
             }
         },

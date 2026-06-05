@@ -56,8 +56,8 @@ Errors:
 | Status | Body |
 | --- | --- |
 | `401` | Auth error. |
-| `404` | `{ "error": "user not found" }` |
-| `500` | `{ "error": "internal server error" }` |
+| `404` | `user_not_found` |
+| `500` | `internal_server_error` |
 
 ## User Settings Object
 
@@ -123,7 +123,7 @@ Errors:
 | Status | Body |
 | --- | --- |
 | `401` | Auth error. |
-| `500` | `{ "error": "internal server error" }` |
+| `500` | `internal_server_error` |
 
 ## Update User Settings
 
@@ -178,9 +178,9 @@ Errors:
 
 | Status | Body |
 | --- | --- |
-| `400` | `{ "error": "invalid request body" }` atau `{ "error": "invalid user settings" }` |
+| `400` | `validation_error`, `invalid_request_body`, atau `invalid_user_settings` |
 | `401` | Auth error. |
-| `500` | `{ "error": "internal server error" }` |
+| `500` | `internal_server_error` |
 
 ## FE Notes
 

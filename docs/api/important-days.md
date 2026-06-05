@@ -160,9 +160,9 @@ Errors:
 
 | Status | Body |
 | --- | --- |
-| `400` | `{ "error": "invalid request body" }` atau `{ "error": "invalid important day date" }` |
+| `400` | `validation_error`, `invalid_request_body`, atau `invalid_important_day_date` |
 | `401` | Auth error. |
-| `500` | `{ "error": "internal server error" }` |
+| `500` | `internal_server_error` |
 
 ## List Important Days
 
@@ -209,9 +209,9 @@ Errors:
 
 | Status | Body |
 | --- | --- |
-| `400` | `{ "error": "invalid important day type" }` |
+| `400` | `invalid_important_day_type` |
 | `401` | Auth error. |
-| `500` | `{ "error": "internal server error" }` |
+| `500` | `internal_server_error` |
 
 ## Upcoming Important Days
 
@@ -277,7 +277,7 @@ Errors:
 | Status | Body |
 | --- | --- |
 | `401` | Auth error. |
-| `500` | `{ "error": "internal server error" }` |
+| `500` | `internal_server_error` |
 
 ## Get Important Day
 
@@ -293,9 +293,9 @@ Errors:
 | Status | Body |
 | --- | --- |
 | `401` | Auth error. |
-| `403` | `{ "error": "forbidden" }` |
-| `404` | `{ "error": "important day not found" }` |
-| `500` | `{ "error": "internal server error" }` |
+| `403` | `forbidden` |
+| `404` | `important_day_not_found` |
+| `500` | `internal_server_error` |
 
 `403` dapat terjadi jika ID ada tetapi milik user lain.
 
@@ -337,10 +337,10 @@ Errors:
 
 | Status | Body |
 | --- | --- |
-| `400` | `{ "error": "invalid request body" }` atau `{ "error": "invalid important day date" }` |
+| `400` | `validation_error`, `invalid_request_body`, atau `invalid_important_day_date` |
 | `401` | Auth error. |
-| `404` | `{ "error": "important day not found" }` |
-| `500` | `{ "error": "internal server error" }` |
+| `404` | `important_day_not_found` |
+| `500` | `internal_server_error` |
 
 ## Delete Important Day
 
@@ -367,8 +367,8 @@ Errors:
 | Status | Body |
 | --- | --- |
 | `401` | Auth error. |
-| `404` | `{ "error": "important day not found" }` |
-| `500` | `{ "error": "internal server error" }` |
+| `404` | `important_day_not_found` |
+| `500` | `internal_server_error` |
 
 ## FE Notes
 
