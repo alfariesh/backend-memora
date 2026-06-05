@@ -2,6 +2,8 @@ module github.com/alfariesh/backend-memora
 
 go 1.26
 
+toolchain go1.26.4
+
 tool (
 	github.com/daixiang0/gci
 	github.com/golang-migrate/migrate/v4/cmd/migrate
@@ -301,6 +303,7 @@ require (
 	github.com/nxadm/tail v1.4.11 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.3.0 // indirect
+	github.com/philhofer/fwd v1.1.3-0.20240916144458-20a13a1f6b7c // indirect
 	github.com/pierrec/lz4/v4 v4.1.16 // indirect
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
@@ -350,6 +353,7 @@ require (
 	github.com/tetafro/godot v1.5.6 // indirect
 	github.com/timakin/bodyclose v0.0.0-20260129054331-73d1f95b84b4 // indirect
 	github.com/timonwong/loggercheck v0.11.0 // indirect
+	github.com/tinylib/msgp v1.2.5 // indirect
 	github.com/tomarrell/wrapcheck/v2 v2.12.0 // indirect
 	github.com/tommy-muehle/go-mnd/v2 v2.5.1 // indirect
 	github.com/ultraware/funlen v0.2.0 // indirect

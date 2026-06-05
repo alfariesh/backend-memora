@@ -69,7 +69,7 @@ type (
 	// JWT -.
 	jwt struct {
 		Secret             string        `env:"JWT_SECRET,required"`
-		TokenExpiry        time.Duration `env:"JWT_TOKEN_EXPIRY" envDefault:"24h"`
+		TokenExpiry        time.Duration `env:"JWT_TOKEN_EXPIRY" envDefault:"15m"`
 		RefreshTokenExpiry time.Duration `env:"JWT_REFRESH_TOKEN_EXPIRY" envDefault:"720h"`
 	}
 

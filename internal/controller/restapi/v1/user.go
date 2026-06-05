@@ -20,6 +20,7 @@ import (
 // @Success     201     {object} entity.User
 // @Failure     400     {object} response.Error
 // @Failure     409     {object} response.Error
+// @Failure     429     {object} response.Error
 // @Failure     500     {object} response.Error
 // @Router      /auth/register [post]
 func (r *V1) register(ctx *fiber.Ctx) error {
@@ -45,6 +46,10 @@ func (r *V1) register(ctx *fiber.Ctx) error {
 			return errorResponse(ctx, http.StatusConflict, "user already exists")
 		}
 
+		if errors.Is(err, entity.ErrInvalidUserInput) {
+			return errorResponse(ctx, http.StatusBadRequest, "invalid user input")
+		}
+
 		return errorResponse(ctx, http.StatusInternalServerError, "internal server error")
 	}
 
@@ -61,6 +66,7 @@ func (r *V1) register(ctx *fiber.Ctx) error {
 // @Success     200     {object} entity.AuthTokens
 // @Failure     400     {object} response.Error
 // @Failure     401     {object} response.Error
+// @Failure     429     {object} response.Error
 // @Failure     500     {object} response.Error
 // @Router      /auth/login [post]
 func (r *V1) login(ctx *fiber.Ctx) error {
@@ -86,6 +92,10 @@ func (r *V1) login(ctx *fiber.Ctx) error {
 			return errorResponse(ctx, http.StatusUnauthorized, "invalid credentials")
 		}
 
+		if errors.Is(err, entity.ErrInvalidUserInput) {
+			return errorResponse(ctx, http.StatusBadRequest, "invalid user input")
+		}
+
 		return errorResponse(ctx, http.StatusInternalServerError, "internal server error")
 	}
 
@@ -102,6 +112,7 @@ func (r *V1) login(ctx *fiber.Ctx) error {
 // @Success     200     {object} entity.AuthTokens
 // @Failure     400     {object} response.Error
 // @Failure     401     {object} response.Error
+// @Failure     429     {object} response.Error
 // @Failure     500     {object} response.Error
 // @Router      /auth/refresh [post]
 func (r *V1) refreshToken(ctx *fiber.Ctx) error {

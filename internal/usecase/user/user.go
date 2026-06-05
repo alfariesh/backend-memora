@@ -59,6 +59,11 @@ func New(r repo.UserRepo, j *jwt.Manager, opts ...Option) *UseCase {
 
 // Register -.
 func (uc *UseCase) Register(ctx context.Context, username, email, password string) (entity.User, error) {
+	username, email, err := entity.NormalizeUserRegistration(username, email, password)
+	if err != nil {
+		return entity.User{}, err
+	}
+
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return entity.User{}, fmt.Errorf("UserUseCase - Register - bcrypt.GenerateFromPassword: %w", err)
@@ -85,6 +90,11 @@ func (uc *UseCase) Register(ctx context.Context, username, email, password strin
 
 // Login -.
 func (uc *UseCase) Login(ctx context.Context, email, password string) (entity.AuthTokens, error) {
+	email, err := entity.NormalizeUserLogin(email, password)
+	if err != nil {
+		return entity.AuthTokens{}, err
+	}
+
 	user, err := uc.repo.GetByEmail(ctx, email)
 	if err != nil {
 		return entity.AuthTokens{}, entity.ErrInvalidCredentials

@@ -1,6 +1,18 @@
 package entity
 
-import "time"
+import (
+	"net/mail"
+	"strings"
+	"time"
+)
+
+const (
+	MinUsernameLength = 3
+	MaxUsernameLength = 255
+	MinPasswordLength = 8
+	MaxPasswordLength = 72
+	MaxEmailLength    = 254
+)
 
 // User -.
 type User struct {
@@ -29,4 +41,56 @@ type UserSession struct {
 	RevokedAt        *time.Time `json:"revoked_at"`
 	CreatedAt        time.Time  `json:"created_at"         example:"2026-01-01T00:00:00Z"`
 	UpdatedAt        time.Time  `json:"updated_at"         example:"2026-01-01T00:00:00Z"`
+}
+
+// NormalizeUserRegistration validates and canonicalizes registration credentials.
+func NormalizeUserRegistration(username, email, password string) (string, string, error) {
+	username = strings.TrimSpace(username)
+	email = normalizeEmail(email)
+
+	if !validUsername(username) || !validEmail(email) || !validPassword(password) {
+		return "", "", ErrInvalidUserInput
+	}
+
+	return username, email, nil
+}
+
+// NormalizeUserLogin validates and canonicalizes login credentials.
+func NormalizeUserLogin(email, password string) (string, error) {
+	email = normalizeEmail(email)
+
+	if !validEmail(email) || password == "" || len(password) > MaxPasswordLength {
+		return "", ErrInvalidUserInput
+	}
+
+	return email, nil
+}
+
+func normalizeEmail(email string) string {
+	return strings.ToLower(strings.TrimSpace(email))
+}
+
+func validUsername(username string) bool {
+	length := len(username)
+
+	return length >= MinUsernameLength && length <= MaxUsernameLength
+}
+
+func validPassword(password string) bool {
+	length := len(password)
+
+	return length >= MinPasswordLength && length <= MaxPasswordLength
+}
+
+func validEmail(email string) bool {
+	if email == "" || len(email) > MaxEmailLength {
+		return false
+	}
+
+	address, err := mail.ParseAddress(email)
+	if err != nil {
+		return false
+	}
+
+	return address.Address == email
 }

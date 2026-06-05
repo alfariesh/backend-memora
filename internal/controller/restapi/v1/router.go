@@ -1,11 +1,24 @@
 package v1
 
 import (
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/alfariesh/backend-memora/internal/controller/restapi/middleware"
 	"github.com/alfariesh/backend-memora/internal/usecase"
 	"github.com/alfariesh/backend-memora/pkg/jwt"
 	"github.com/alfariesh/backend-memora/pkg/logger"
+	"github.com/goccy/go-json"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/limiter"
+)
+
+const (
+	registerRateLimit = 3
+	loginRateLimit    = 5
+	refreshRateLimit  = 30
+	authRateWindow    = time.Minute
 )
 
 // NewRoutes -.
@@ -24,9 +37,9 @@ func NewRoutes(
 	// Public routes
 	authGroup := apiV1Group.Group("/auth")
 	{
-		authGroup.Post("/register", r.register)
-		authGroup.Post("/login", r.login)
-		authGroup.Post("/refresh", r.refreshToken)
+		authGroup.Post("/register", authRateLimiter("register", registerRateLimit, ipRateLimitKey), r.register)
+		authGroup.Post("/login", authRateLimiter("login", loginRateLimit, loginRateLimitKey), r.login)
+		authGroup.Post("/refresh", authRateLimiter("refresh", refreshRateLimit, ipRateLimitKey), r.refreshToken)
 		authGroup.Post("/logout", r.logout)
 	}
 
@@ -72,4 +85,38 @@ func NewRoutes(
 		deviceGroup.Post("/:id/test-push", r.testPush)
 		deviceGroup.Delete("/:id", r.deleteDevice)
 	}
+}
+
+func authRateLimiter(name string, max int, keyGenerator func(*fiber.Ctx) string) fiber.Handler {
+	return limiter.New(limiter.Config{
+		Max:        max,
+		Expiration: authRateWindow,
+		KeyGenerator: func(ctx *fiber.Ctx) string {
+			return "auth:" + name + ":" + keyGenerator(ctx)
+		},
+		LimitReached: func(ctx *fiber.Ctx) error {
+			return errorResponse(ctx, http.StatusTooManyRequests, "too many requests")
+		},
+	})
+}
+
+func ipRateLimitKey(ctx *fiber.Ctx) string {
+	return ctx.IP()
+}
+
+func loginRateLimitKey(ctx *fiber.Ctx) string {
+	var body struct {
+		Email string `json:"email"`
+	}
+
+	if err := json.Unmarshal(ctx.Body(), &body); err != nil {
+		return ctx.IP()
+	}
+
+	email := strings.ToLower(strings.TrimSpace(body.Email))
+	if email == "" {
+		return ctx.IP()
+	}
+
+	return ctx.IP() + ":" + email
 }

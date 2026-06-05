@@ -59,6 +59,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/v1.Error"
                         }
                     },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -156,6 +162,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/v1.Error"
                         }
                     },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -205,6 +217,12 @@ const docTemplate = `{
                     },
                     "409": {
                         "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
                         "schema": {
                             "$ref": "#/definitions/v1.Error"
                         }
@@ -1877,6 +1895,7 @@ const docTemplate = `{
                 },
                 "password": {
                     "type": "string",
+                    "maxLength": 72,
                     "example": "secret123"
                 }
             }
@@ -1954,7 +1973,8 @@ const docTemplate = `{
                 },
                 "password": {
                     "type": "string",
-                    "minLength": 6,
+                    "maxLength": 72,
+                    "minLength": 8,
                     "example": "secret123"
                 },
                 "username": {

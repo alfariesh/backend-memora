@@ -119,10 +119,11 @@ Contoh validation error:
 | `204` | Request sukses tanpa body. Jangan coba parse JSON. |
 | `400` | Body/query invalid, field tidak valid, tanggal invalid, token Expo invalid. |
 | `401` | Access token tidak ada, format salah, expired, atau invalid. |
-| `403` | Resource ada tetapi milik user lain. |
-| `404` | Resource tidak ditemukan atau tidak aktif untuk user ini. |
+| `403` | Aksi ditolak oleh authorization eksplisit. ID milik user lain diperlakukan sebagai `404`. |
+| `404` | Resource tidak ditemukan, tidak aktif, atau bukan milik user ini. |
 | `409` | Conflict, saat ini dipakai untuk duplicate user email. |
 | `410` | Expo menyatakan device token tidak terdaftar lagi. |
+| `429` | Terkena rate limit. |
 | `502` | Backend gagal mengirim ke provider push. |
 | `503` | Push sender tidak tersedia atau tidak terkonfigurasi pada runtime tertentu. |
 | `500` | Error backend tidak terduga. |

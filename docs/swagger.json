@@ -53,6 +53,12 @@
                             "$ref": "#/definitions/v1.Error"
                         }
                     },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -150,6 +156,12 @@
                             "$ref": "#/definitions/v1.Error"
                         }
                     },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -199,6 +211,12 @@
                     },
                     "409": {
                         "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/v1.Error"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
                         "schema": {
                             "$ref": "#/definitions/v1.Error"
                         }
@@ -1871,6 +1889,7 @@
                 },
                 "password": {
                     "type": "string",
+                    "maxLength": 72,
                     "example": "secret123"
                 }
             }
@@ -1948,7 +1967,8 @@
                 },
                 "password": {
                     "type": "string",
-                    "minLength": 6,
+                    "maxLength": 72,
+                    "minLength": 8,
                     "example": "secret123"
                 },
                 "username": {

@@ -124,7 +124,6 @@ Errors:
 | Status | Body |
 | --- | --- |
 | `401` | Auth error. |
-| `403` | `forbidden` |
 | `404` | `important_day_not_found` |
 | `500` | `internal_server_error` |
 

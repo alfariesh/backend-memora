@@ -14,12 +14,21 @@ import (
 
 // Register -.
 func (c *AuthController) Register(ctx context.Context, req *v1.RegisterRequest) (*v1.RegisterResponse, error) {
-	user, err := c.u.Register(ctx, req.GetUsername(), req.GetEmail(), req.GetPassword())
+	username, email, err := entity.NormalizeUserRegistration(req.GetUsername(), req.GetEmail(), req.GetPassword())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid user input")
+	}
+
+	user, err := c.u.Register(ctx, username, email, req.GetPassword())
 	if err != nil {
 		c.l.Error(err, "grpc - v1 - Register")
 
 		if errors.Is(err, entity.ErrUserAlreadyExists) {
 			return nil, status.Error(codes.AlreadyExists, "user already exists")
+		}
+
+		if errors.Is(err, entity.ErrInvalidUserInput) {
+			return nil, status.Error(codes.InvalidArgument, "invalid user input")
 		}
 
 		return nil, status.Error(codes.Internal, "internal server error")
@@ -30,12 +39,21 @@ func (c *AuthController) Register(ctx context.Context, req *v1.RegisterRequest) 
 
 // Login -.
 func (c *AuthController) Login(ctx context.Context, req *v1.LoginRequest) (*v1.LoginResponse, error) {
-	tokens, err := c.u.Login(ctx, req.GetEmail(), req.GetPassword())
+	email, err := entity.NormalizeUserLogin(req.GetEmail(), req.GetPassword())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid user input")
+	}
+
+	tokens, err := c.u.Login(ctx, email, req.GetPassword())
 	if err != nil {
 		c.l.Error(err, "grpc - v1 - Login")
 
 		if errors.Is(err, entity.ErrInvalidCredentials) {
 			return nil, status.Error(codes.Unauthenticated, "invalid credentials")
+		}
+
+		if errors.Is(err, entity.ErrInvalidUserInput) {
+			return nil, status.Error(codes.InvalidArgument, "invalid user input")
 		}
 
 		return nil, status.Error(codes.Internal, "internal server error")

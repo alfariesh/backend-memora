@@ -5,6 +5,7 @@ import "errors"
 var (
 	ErrUserNotFound             = errors.New("user not found")
 	ErrUserAlreadyExists        = errors.New("user already exists")
+	ErrInvalidUserInput         = errors.New("invalid user input")
 	ErrInvalidCredentials       = errors.New("invalid credentials")
 	ErrImportantDayNotFound     = errors.New("important day not found")
 	ErrImportantDayForbidden    = errors.New("important day does not belong to user")

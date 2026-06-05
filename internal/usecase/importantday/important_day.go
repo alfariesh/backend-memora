@@ -122,8 +122,8 @@ func (uc *UseCase) List(ctx context.Context, userID string, dayType *entity.Impo
 
 	days, total, err := uc.dayRepo.List(ctx, userID, repo.ImportantDayFilter{
 		Type:   dayType,
-		Limit:  uint64(limit),
-		Offset: uint64(offset),
+		Limit:  safeUint64(limit),
+		Offset: safeUint64(offset),
 	})
 	if err != nil {
 		return nil, 0, fmt.Errorf("ImportantDayUseCase - List - uc.dayRepo.List: %w", err)
@@ -388,6 +388,14 @@ func normalizeListPagination(limit, offset int) (int, int) {
 	}
 
 	return limit, offset
+}
+
+func safeUint64(value int) uint64 {
+	if value < 0 {
+		return 0
+	}
+
+	return uint64(value)
 }
 
 func normalizeUpcomingDays(days int) int {

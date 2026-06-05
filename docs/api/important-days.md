@@ -293,11 +293,10 @@ Errors:
 | Status | Body |
 | --- | --- |
 | `401` | Auth error. |
-| `403` | `forbidden` |
 | `404` | `important_day_not_found` |
 | `500` | `internal_server_error` |
 
-`403` dapat terjadi jika ID ada tetapi milik user lain.
+ID yang ada tetapi milik user lain diperlakukan sebagai `404`.
 
 ## Update Important Day
 

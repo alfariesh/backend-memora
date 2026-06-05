@@ -11,10 +11,26 @@ import (
 // ErrUnexpectedSigningMethod is returned when the JWT signing method is not expected.
 var ErrUnexpectedSigningMethod = errors.New("unexpected signing method")
 
+// ErrInvalidTokenClaims is returned when token claims do not match access token policy.
+var ErrInvalidTokenClaims = errors.New("invalid token claims")
+
+const (
+	defaultIssuer   = "backend-memora"
+	defaultAudience = "memora-clients"
+	accessTokenType = "access"
+)
+
 // Manager handles JWT token generation and parsing.
 type Manager struct {
 	secret   string
 	duration time.Duration
+	issuer   string
+	audience string
+}
+
+type accessClaims struct {
+	Type string `json:"typ"`
+	jwtlib.RegisteredClaims
 }
 
 // New -.
@@ -22,6 +38,8 @@ func New(secret string, duration time.Duration) *Manager {
 	return &Manager{
 		secret:   secret,
 		duration: duration,
+		issuer:   defaultIssuer,
+		audience: defaultAudience,
 	}
 }
 
@@ -34,10 +52,22 @@ func (m *Manager) GenerateToken(userID string) (string, error) {
 
 // GenerateTokenWithExpiry creates a new JWT token and returns its expiration time.
 func (m *Manager) GenerateTokenWithExpiry(userID string) (string, time.Time, error) {
-	expiresAt := time.Now().UTC().Add(m.duration)
-	token := jwtlib.NewWithClaims(jwtlib.SigningMethodHS256, jwtlib.RegisteredClaims{
-		Subject:   userID,
-		ExpiresAt: jwtlib.NewNumericDate(expiresAt),
+	if userID == "" {
+		return "", time.Time{}, ErrInvalidTokenClaims
+	}
+
+	now := time.Now().UTC()
+	expiresAt := now.Add(m.duration)
+	token := jwtlib.NewWithClaims(jwtlib.SigningMethodHS256, accessClaims{
+		Type: accessTokenType,
+		RegisteredClaims: jwtlib.RegisteredClaims{
+			Subject:   userID,
+			Issuer:    m.issuer,
+			Audience:  jwtlib.ClaimStrings{m.audience},
+			IssuedAt:  jwtlib.NewNumericDate(now),
+			NotBefore: jwtlib.NewNumericDate(now),
+			ExpiresAt: jwtlib.NewNumericDate(expiresAt),
+		},
 	})
 
 	tokenString, err := token.SignedString([]byte(m.secret))
@@ -50,15 +80,38 @@ func (m *Manager) GenerateTokenWithExpiry(userID string) (string, time.Time, err
 
 // ParseToken validates a JWT token and returns the user ID.
 func (m *Manager) ParseToken(tokenString string) (string, error) {
-	token, err := jwtlib.Parse(tokenString, func(token *jwtlib.Token) (any, error) {
-		if _, ok := token.Method.(*jwtlib.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("%w: %v", ErrUnexpectedSigningMethod, token.Header["alg"])
-		}
+	claims := &accessClaims{}
 
-		return []byte(m.secret), nil
-	})
+	token, err := jwtlib.ParseWithClaims(
+		tokenString,
+		claims,
+		func(token *jwtlib.Token) (any, error) {
+			if token.Method != jwtlib.SigningMethodHS256 {
+				return nil, fmt.Errorf("%w: %v", ErrUnexpectedSigningMethod, token.Header["alg"])
+			}
+
+			return []byte(m.secret), nil
+		},
+		jwtlib.WithValidMethods([]string{jwtlib.SigningMethodHS256.Alg()}),
+		jwtlib.WithIssuer(m.issuer),
+		jwtlib.WithAudience(m.audience),
+		jwtlib.WithExpirationRequired(),
+		jwtlib.WithIssuedAt(),
+	)
 	if err != nil {
-		return "", fmt.Errorf("jwt - ParseToken - jwtlib.Parse: %w", err)
+		return "", fmt.Errorf("jwt - ParseToken - jwtlib.ParseWithClaims: %w", err)
+	}
+
+	if !token.Valid {
+		return "", fmt.Errorf("jwt - ParseToken: %w", ErrInvalidTokenClaims)
+	}
+
+	if claims.Subject == "" ||
+		claims.Type != accessTokenType ||
+		claims.IssuedAt == nil ||
+		claims.NotBefore == nil ||
+		claims.ExpiresAt == nil {
+		return "", fmt.Errorf("jwt - ParseToken: %w", ErrInvalidTokenClaims)
 	}
 
 	sub, err := token.Claims.GetSubject()

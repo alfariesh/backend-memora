@@ -19,7 +19,7 @@ Default expiry dari env:
 
 | Env | Default |
 | --- | --- |
-| `JWT_TOKEN_EXPIRY` | `24h` |
+| `JWT_TOKEN_EXPIRY` | `15m` |
 | `JWT_REFRESH_TOKEN_EXPIRY` | `720h` |
 
 FE baru sebaiknya memakai `access_token`, bukan `token`.
@@ -58,7 +58,7 @@ Validation:
 | --- | --- | --- |
 | `username` | yes | min `3`, max `255` chars |
 | `email` | yes | valid email |
-| `password` | yes | min `6` chars |
+| `password` | yes | min `8`, max `72` chars |
 
 Success `201`:
 
@@ -79,6 +79,7 @@ Errors:
 | Status | Body |
 | --- | --- |
 | `400` | `validation_error` atau `invalid_request_body` |
+| `429` | `too_many_requests` |
 | `409` | `user_already_exists` |
 | `500` | `internal_server_error` |
 
@@ -103,7 +104,7 @@ Validation:
 | Field | Required | Rule |
 | --- | --- | --- |
 | `email` | yes | valid email |
-| `password` | yes | non-empty |
+| `password` | yes | non-empty, max `72` chars |
 
 Success `200`:
 
@@ -122,6 +123,7 @@ Errors:
 | --- | --- |
 | `400` | `validation_error` atau `invalid_request_body` |
 | `401` | `invalid_credentials` |
+| `429` | `too_many_requests` |
 | `500` | `internal_server_error` |
 
 ## Refresh Token
@@ -163,6 +165,7 @@ Errors:
 | --- | --- |
 | `400` | `validation_error` atau `invalid_request_body` |
 | `401` | `invalid_refresh_token` |
+| `429` | `too_many_requests` |
 | `500` | `internal_server_error` |
 
 ## Logout

@@ -65,7 +65,7 @@ func (r *ImportantDayRepo) GetByID(ctx context.Context, userID, id string) (enti
 	sql, args, err := r.Builder.
 		Select(importantDayColumns()).
 		From("important_days").
-		Where(sq.Eq{"id": id}).
+		Where(sq.Eq{"id": id, "user_id": userID}).
 		ToSql()
 	if err != nil {
 		return entity.ImportantDay{}, fmt.Errorf("ImportantDayRepo - GetByID - r.Builder: %w", err)
@@ -78,10 +78,6 @@ func (r *ImportantDayRepo) GetByID(ctx context.Context, userID, id string) (enti
 		}
 
 		return entity.ImportantDay{}, fmt.Errorf("ImportantDayRepo - GetByID - scan: %w", err)
-	}
-
-	if day.UserID != userID {
-		return entity.ImportantDay{}, entity.ErrImportantDayForbidden
 	}
 
 	return day, nil

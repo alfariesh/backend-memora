@@ -25,8 +25,8 @@ func NewImportantDayResponse(day *entity.ImportantDay) *v1.ImportantDayResponse 
 		Relationship: day.Relationship,
 		Description:  day.Description,
 		EventYear:    eventYear,
-		EventMonth:   int32(day.EventMonth),
-		EventDay:     int32(day.EventDay),
+		EventMonth:   safeInt32(day.EventMonth),
+		EventDay:     safeInt32(day.EventDay),
 		Recurrence:   string(day.Recurrence),
 		Timezone:     day.Timezone,
 		ReminderTime: day.ReminderTime,
@@ -62,7 +62,7 @@ func NewUpcomingImportantDaysResponse(days []entity.ImportantDayUpcoming, total 
 		pbDays[i] = &v1.UpcomingImportantDayResponse{
 			ImportantDay:   NewImportantDayResponse(&day),
 			OccurrenceDate: days[i].OccurrenceDate,
-			DaysUntil:      int32(days[i].DaysUntil),
+			DaysUntil:      safeInt32(days[i].DaysUntil),
 			Anniversary:    anniversary,
 		}
 	}
@@ -86,7 +86,7 @@ func NewReminderRulesResponse(rules []entity.ReminderRule) *v1.ReminderRulesResp
 			Id:             rules[i].ID,
 			UserId:         rules[i].UserID,
 			ImportantDayId: rules[i].ImportantDayID,
-			OffsetDays:     int32(rules[i].OffsetDays),
+			OffsetDays:     safeInt32(rules[i].OffsetDays),
 			Channels:       channels,
 			CreatedAt:      formatTime(rules[i].CreatedAt),
 			UpdatedAt:      formatTime(rules[i].UpdatedAt),

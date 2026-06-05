@@ -53,8 +53,12 @@ deps: ### deps tidy + verify
 .PHONY: deps
 
 deps-audit: ### check dependencies vulnerabilities
-	govulncheck ./...
+	CGO_ENABLED=0 go tool govulncheck ./...
 .PHONY: deps-audit
+
+security-sast: ### run gosec security scanner
+	go run github.com/securego/gosec/v2/cmd/gosec@v2.26.1 -exclude-generated ./...
+.PHONY: security-sast
 
 fix-diff: ### Show code changes by `go fix`
 	go fix -diff ./...
