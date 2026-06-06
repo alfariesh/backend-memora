@@ -24,11 +24,46 @@ Content-Type: application/json
 Accept: application/json
 ```
 
+Untuk tracing request dari FE, client boleh mengirim ID sendiri:
+
+```http
+X-Request-ID: <safe-client-request-id>
+```
+
+Backend akan selalu mengembalikan `X-Request-ID` dan `X-Correlation-ID` di response. Jika request mengirim `X-Request-ID` atau `X-Correlation-ID` yang valid, nilai itu dipakai ulang; jika kosong atau invalid, backend membuat ID baru. Header valid maksimal 128 karakter dan hanya memakai huruf, angka, `-`, `_`, `.`, atau `:`.
+
 Untuk protected endpoint:
 
 ```http
 Authorization: Bearer <access_token>
 ```
+
+## Browser CORS
+
+REST API menolak browser origin yang tidak ada di allow-list CORS. Default lokal:
+
+```text
+http://localhost:3000
+http://127.0.0.1:3000
+http://localhost:5173
+http://127.0.0.1:5173
+```
+
+Konfigurasi production memakai env:
+
+```env
+HTTP_CORS_ENABLED=true
+HTTP_ALLOWED_ORIGINS=https://app.example.com
+HTTP_ALLOWED_METHODS=GET,POST,PUT,PATCH,DELETE,OPTIONS
+HTTP_ALLOWED_HEADERS=Authorization,Content-Type,Accept,X-Request-ID,X-Correlation-ID
+HTTP_EXPOSED_HEADERS=X-Request-ID,X-Correlation-ID
+HTTP_CORS_ALLOW_CREDENTIALS=false
+HTTP_CORS_MAX_AGE=600
+```
+
+Client auth memakai bearer token, bukan cookie, jadi `HTTP_CORS_ALLOW_CREDENTIALS` sebaiknya tetap `false`.
+
+Security headers aktif secara default: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `Origin-Agent-Cluster`, `X-DNS-Prefetch-Control`, `X-Download-Options`, dan `X-Permitted-Cross-Domain-Policies`. `Strict-Transport-Security` hanya diset jika `HTTP_SECURITY_HSTS_ENABLED=true`; aktifkan hanya saat public API sudah served via HTTPS.
 
 Public endpoint:
 

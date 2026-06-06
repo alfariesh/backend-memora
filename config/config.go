@@ -33,8 +33,20 @@ type (
 
 	// HTTP -.
 	http struct {
-		Port           string `env:"HTTP_PORT,required"`
-		UsePreforkMode bool   `env:"HTTP_USE_PREFORK_MODE" envDefault:"false"`
+		Port                          string `env:"HTTP_PORT,required"`
+		UsePreforkMode                bool   `env:"HTTP_USE_PREFORK_MODE" envDefault:"false"`
+		CORSEnabled                   bool   `env:"HTTP_CORS_ENABLED" envDefault:"true"`
+		AllowedOrigins                string `env:"HTTP_ALLOWED_ORIGINS" envDefault:"http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173"`
+		AllowedMethods                string `env:"HTTP_ALLOWED_METHODS" envDefault:"GET,POST,PUT,PATCH,DELETE,OPTIONS"`
+		AllowedHeaders                string `env:"HTTP_ALLOWED_HEADERS" envDefault:"Authorization,Content-Type,Accept,X-Request-ID,X-Correlation-ID"`
+		ExposedHeaders                string `env:"HTTP_EXPOSED_HEADERS" envDefault:"X-Request-ID,X-Correlation-ID"`
+		CORSAllowCredentials          bool   `env:"HTTP_CORS_ALLOW_CREDENTIALS" envDefault:"false"`
+		CORSMaxAge                    int    `env:"HTTP_CORS_MAX_AGE" envDefault:"600"`
+		SecurityHeadersEnabled        bool   `env:"HTTP_SECURITY_HEADERS_ENABLED" envDefault:"true"`
+		SecurityHSTSEnabled           bool   `env:"HTTP_SECURITY_HSTS_ENABLED" envDefault:"false"`
+		SecurityHSTSMaxAge            int    `env:"HTTP_SECURITY_HSTS_MAX_AGE" envDefault:"31536000"`
+		SecurityHSTSIncludeSubdomains bool   `env:"HTTP_SECURITY_HSTS_INCLUDE_SUBDOMAINS" envDefault:"true"`
+		SecurityHSTSPreload           bool   `env:"HTTP_SECURITY_HSTS_PRELOAD" envDefault:"false"`
 	}
 
 	// Log -.

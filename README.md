@@ -47,6 +47,27 @@ make compose-up-integration-test
 
 Configuration is loaded from environment variables. Start from [.env.example](.env.example).
 
+Browser clients are controlled by exact-origin CORS defaults:
+
+```env
+HTTP_CORS_ENABLED=true
+HTTP_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173
+HTTP_ALLOWED_METHODS=GET,POST,PUT,PATCH,DELETE,OPTIONS
+HTTP_ALLOWED_HEADERS=Authorization,Content-Type,Accept,X-Request-ID,X-Correlation-ID
+HTTP_EXPOSED_HEADERS=X-Request-ID,X-Correlation-ID
+HTTP_CORS_ALLOW_CREDENTIALS=false
+```
+
+Security headers are enabled by default. Keep HSTS disabled locally, and enable it only when the public API is served exclusively over HTTPS:
+
+```env
+HTTP_SECURITY_HEADERS_ENABLED=true
+HTTP_SECURITY_HSTS_ENABLED=false
+HTTP_SECURITY_HSTS_MAX_AGE=31536000
+HTTP_SECURITY_HSTS_INCLUDE_SUBDOMAINS=true
+HTTP_SECURITY_HSTS_PRELOAD=false
+```
+
 Email reminders use Resend:
 
 ```env

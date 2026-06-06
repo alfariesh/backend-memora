@@ -21,6 +21,11 @@ func buildRequestMessage(ctx *fiber.Ctx) string {
 	result.WriteString(" ")
 	result.WriteString(strconv.Itoa(len(ctx.Response().Body())))
 
+	if requestID := RequestIDFromContext(ctx); requestID != "" {
+		result.WriteString(" request_id=")
+		result.WriteString(requestID)
+	}
+
 	return result.String()
 }
 

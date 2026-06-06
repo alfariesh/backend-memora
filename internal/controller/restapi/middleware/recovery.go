@@ -18,6 +18,10 @@ func buildPanicMessage(ctx *fiber.Ctx, err any) string {
 	result.WriteString(ctx.Method())
 	result.WriteString(" ")
 	result.WriteString(ctx.OriginalURL())
+	if requestID := RequestIDFromContext(ctx); requestID != "" {
+		result.WriteString(" request_id=")
+		result.WriteString(requestID)
+	}
 	result.WriteString(" PANIC DETECTED: ")
 	fmt.Fprintf(&result, "%v\n%s\n", err, debug.Stack())
 

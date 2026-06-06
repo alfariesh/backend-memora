@@ -38,8 +38,25 @@ func NewRouter(
 	l logger.Interface,
 ) {
 	// Options
+	app.Use(middleware.RequestID())
 	app.Use(middleware.Logger(l))
 	app.Use(middleware.Recovery(l))
+	app.Use(middleware.SecurityHeaders(middleware.SecurityHeadersConfig{
+		Enabled:               cfg.HTTP.SecurityHeadersEnabled,
+		HSTSEnabled:           cfg.HTTP.SecurityHSTSEnabled,
+		HSTSMaxAge:            cfg.HTTP.SecurityHSTSMaxAge,
+		HSTSIncludeSubdomains: cfg.HTTP.SecurityHSTSIncludeSubdomains,
+		HSTSPreload:           cfg.HTTP.SecurityHSTSPreload,
+	}))
+	app.Use(middleware.CORS(middleware.CORSConfig{
+		Enabled:          cfg.HTTP.CORSEnabled,
+		AllowedOrigins:   cfg.HTTP.AllowedOrigins,
+		AllowedMethods:   cfg.HTTP.AllowedMethods,
+		AllowedHeaders:   cfg.HTTP.AllowedHeaders,
+		ExposedHeaders:   cfg.HTTP.ExposedHeaders,
+		AllowCredentials: cfg.HTTP.CORSAllowCredentials,
+		MaxAge:           cfg.HTTP.CORSMaxAge,
+	}))
 
 	// Prometheus metrics
 	if cfg.Metrics.Enabled {
