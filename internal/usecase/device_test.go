@@ -58,9 +58,10 @@ func TestDeviceTestPush(t *testing.T) {
 	t.Parallel()
 
 	deviceToken := entity.DeviceToken{
-		ID:     "device-id-123",
-		UserID: "user-id-123",
-		Token:  "ExpoPushToken[test]",
+		ID:       "device-id-123",
+		UserID:   "user-id-123",
+		Token:    "11111111-1111-4111-8111-111111111111",
+		Provider: entity.DeviceTokenProviderOneSignal,
 	}
 
 	t.Run("success", func(t *testing.T) {
@@ -69,11 +70,12 @@ func TestDeviceTestPush(t *testing.T) {
 		uc, repo, pushSender := newDeviceUseCase(t)
 		repo.EXPECT().ListActiveByUser(context.Background(), "user-id-123").Return([]entity.DeviceToken{deviceToken}, nil)
 		pushSender.EXPECT().
-			Send(context.Background(), deviceToken.Token, "Custom title", "Custom body", gomock.Any()).
-			DoAndReturn(func(_ context.Context, _, _, _ string, data map[string]string) (string, error) {
+			Send(context.Background(), deviceToken.Token, "Custom title", "Custom body", gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, _, _, _ string, data map[string]string, idempotencyKey string) (string, error) {
 				assert.Equal(t, "test_push", data["type"])
 				assert.Equal(t, deviceToken.ID, data["device_id"])
 				assert.NotEmpty(t, data["sent_at"])
+				assert.NotEmpty(t, idempotencyKey)
 
 				return "ticket-id-123", nil
 			})
@@ -103,7 +105,7 @@ func TestDeviceTestPush(t *testing.T) {
 		uc, repo, pushSender := newDeviceUseCase(t)
 		repo.EXPECT().ListActiveByUser(context.Background(), "user-id-123").Return([]entity.DeviceToken{deviceToken}, nil)
 		pushSender.EXPECT().
-			Send(context.Background(), deviceToken.Token, "Memora test", "Push notifications are working.", gomock.Any()).
+			Send(context.Background(), deviceToken.Token, "Memora test", "Push notifications are working.", gomock.Any(), gomock.Any()).
 			Return("", fmt.Errorf("%w: inactive", entity.ErrPushDeviceNotRegistered))
 		repo.EXPECT().Deactivate(context.Background(), "user-id-123", "device-id-123", gomock.Any()).Return(nil)
 
@@ -118,7 +120,7 @@ func TestDeviceTestPush(t *testing.T) {
 		uc, repo, pushSender := newDeviceUseCase(t)
 		repo.EXPECT().ListActiveByUser(context.Background(), "user-id-123").Return([]entity.DeviceToken{deviceToken}, nil)
 		pushSender.EXPECT().
-			Send(context.Background(), deviceToken.Token, "Memora test", "Push notifications are working.", gomock.Any()).
+			Send(context.Background(), deviceToken.Token, "Memora test", "Push notifications are working.", gomock.Any(), gomock.Any()).
 			Return("", errInternalServErr)
 
 		_, err := uc.TestPush(context.Background(), "user-id-123", "device-id-123", "", "")

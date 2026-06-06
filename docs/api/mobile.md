@@ -61,7 +61,7 @@ Success `200`:
     {
       "id": "550e8400-e29b-41d4-a716-446655440000",
       "user_id": "550e8400-e29b-41d4-a716-446655440000",
-      "token": "ExpoPushToken[xxxxxxxxxxxxxxxxxxxxxx]",
+      "token": "1dd608f2-c6a1-11e3-851d-000c2940e62c",
       "platform": "android",
       "name": "Pixel 8",
       "active": true,

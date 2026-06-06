@@ -33,7 +33,7 @@ definitions:
         example: android
         type: string
       token:
-        example: ExpoPushToken[xxxxxxxxxxxxxxxxxxxxxx]
+        example: 1dd608f2-c6a1-11e3-851d-000c2940e62c
         type: string
       updated_at:
         example: "2026-01-01T00:00:00Z"
@@ -521,7 +521,7 @@ definitions:
         maxLength: 40
         type: string
       token:
-        example: ExpoPushToken[xxxxxxxxxxxxxxxxxxxxxx]
+        example: 1dd608f2-c6a1-11e3-851d-000c2940e62c
         type: string
     required:
     - platform
@@ -892,7 +892,7 @@ paths:
       - auth
   /devices:
     get:
-      description: List active Expo push tokens for the current user
+      description: List active OneSignal subscription IDs for the current user
       operationId: list-devices
       produces:
       - application/json
@@ -917,7 +917,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Register or reactivate an Expo push token for the current user
+      description: Register or reactivate a OneSignal subscription ID for the current
+        user
       operationId: register-device
       parameters:
       - description: Device token data
@@ -984,7 +985,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Send a test Expo push notification to a registered device
+      description: Send a test OneSignal push notification to a registered device
       operationId: test-push
       parameters:
       - description: Device token ID

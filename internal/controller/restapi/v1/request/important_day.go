@@ -44,7 +44,7 @@ type ReplaceReminderRules struct {
 
 // RegisterDevice -.
 type RegisterDevice struct {
-	Token    string `json:"token"    validate:"required"              example:"ExpoPushToken[xxxxxxxxxxxxxxxxxxxxxx]"`
+	Token    string `json:"token"    validate:"required"              example:"1dd608f2-c6a1-11e3-851d-000c2940e62c"`
 	Platform string `json:"platform" validate:"required,max=40"       example:"android"`
 	Name     string `json:"name"     validate:"omitempty,max=255"     example:"Pixel 8"`
 } // @name v1.RegisterDevice

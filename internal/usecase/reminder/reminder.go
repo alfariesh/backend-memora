@@ -29,6 +29,7 @@ type UseCase struct {
 	settingsRepo     repo.UserSettingsRepo
 	notificationRepo repo.NotificationRepo
 	deviceRepo       repo.DeviceTokenRepo
+	deliveryRepo     repo.ReminderDeliveryRepo
 	emailSender      repo.EmailSender
 	pushSender       repo.PushSender
 }
@@ -41,6 +42,7 @@ func New(
 	settingsRepo repo.UserSettingsRepo,
 	notificationRepo repo.NotificationRepo,
 	deviceRepo repo.DeviceTokenRepo,
+	deliveryRepo repo.ReminderDeliveryRepo,
 	emailSender repo.EmailSender,
 	pushSender repo.PushSender,
 ) *UseCase {
@@ -51,6 +53,7 @@ func New(
 		settingsRepo:     settingsRepo,
 		notificationRepo: notificationRepo,
 		deviceRepo:       deviceRepo,
+		deliveryRepo:     deliveryRepo,
 		emailSender:      emailSender,
 		pushSender:       pushSender,
 	}
@@ -112,7 +115,7 @@ func (uc *UseCase) deliverJob(ctx context.Context, job entity.ReminderJob, now t
 func (uc *UseCase) deliverChannel(ctx context.Context, day entity.ImportantDay, job entity.ReminderJob, title, body string, now time.Time) (deliveryResult, error) {
 	switch job.Channel {
 	case entity.ReminderChannelEmail:
-		return uc.deliverEmail(ctx, day, job, title, body)
+		return uc.deliverEmail(ctx, day, job, title, body, now)
 	case entity.ReminderChannelInApp:
 		return uc.deliverInApp(ctx, job, title, body, now)
 	case entity.ReminderChannelPush:
@@ -122,7 +125,7 @@ func (uc *UseCase) deliverChannel(ctx context.Context, day entity.ImportantDay, 
 	}
 }
 
-func (uc *UseCase) deliverEmail(ctx context.Context, day entity.ImportantDay, job entity.ReminderJob, title, body string) (deliveryResult, error) {
+func (uc *UseCase) deliverEmail(ctx context.Context, day entity.ImportantDay, job entity.ReminderJob, title, body string, now time.Time) (deliveryResult, error) {
 	if uc.emailSender == nil {
 		return deliveryResult{status: entity.ReminderJobStatusSkipped, reason: entity.ErrEmailSenderNotConfigured.Error()}, nil
 	}
@@ -132,12 +135,38 @@ func (uc *UseCase) deliverEmail(ctx context.Context, day entity.ImportantDay, jo
 		return deliveryResult{}, fmt.Errorf("ReminderUseCase - deliverEmail - uc.userRepo.GetByID: %w", err)
 	}
 
-	if _, err := uc.emailSender.Send(ctx, user.Email, title, reminderHTML(user, day, job, body)); err != nil {
+	delivery, terminal, result, err := uc.beginDelivery(ctx, entity.ReminderDelivery{
+		ID:             uuid.New().String(),
+		ReminderJobID:  job.ID,
+		Channel:        entity.ReminderChannelEmail,
+		TargetID:       user.ID,
+		Provider:       entity.ReminderDeliveryProviderResend,
+		IdempotencyKey: reminderEmailIdempotencyKey(job),
+	}, now)
+	if err != nil || terminal {
+		return result, err
+	}
+
+	messageID, err := uc.emailSender.Send(ctx, user.Email, title, reminderHTML(user, day, job, body), delivery.IdempotencyKey)
+	if err != nil {
 		if errors.Is(err, entity.ErrEmailSenderNotConfigured) {
+			if markErr := uc.deliveryRepo.MarkSkipped(ctx, delivery.ID, entity.ErrEmailSenderNotConfigured.Error(), now); markErr != nil {
+				return deliveryResult{}, fmt.Errorf("ReminderUseCase - deliverEmail - uc.deliveryRepo.MarkSkipped: %w", markErr)
+			}
+
 			return deliveryResult{status: entity.ReminderJobStatusSkipped, reason: entity.ErrEmailSenderNotConfigured.Error()}, nil
 		}
 
-		return deliveryResult{}, fmt.Errorf("email: %w", err)
+		sendErr := fmt.Errorf("email: %w", err)
+		if markErr := uc.deliveryRepo.MarkFailed(ctx, delivery.ID, sendErr.Error(), now); markErr != nil {
+			return deliveryResult{}, errors.Join(sendErr, fmt.Errorf("ReminderUseCase - deliverEmail - uc.deliveryRepo.MarkFailed: %w", markErr))
+		}
+
+		return deliveryResult{}, sendErr
+	}
+
+	if err = uc.deliveryRepo.MarkSent(ctx, delivery.ID, messageID, now); err != nil {
+		return deliveryResult{}, fmt.Errorf("ReminderUseCase - deliverEmail - uc.deliveryRepo.MarkSent: %w", err)
 	}
 
 	return deliveryResult{status: entity.ReminderJobStatusSent}, nil
@@ -200,21 +229,63 @@ func (uc *UseCase) sendPush(ctx context.Context, job entity.ReminderJob, title, 
 
 	failures := make([]string, 0)
 	sent := false
+	activeTargets := 0
 	for _, token := range tokens {
-		if _, err = uc.pushSender.Send(ctx, token.Token, title, body, data); err != nil {
+		if token.Provider != "" && token.Provider != entity.DeviceTokenProviderOneSignal {
+			continue
+		}
+
+		activeTargets++
+		delivery, terminal, result, deliveryErr := uc.beginDelivery(ctx, entity.ReminderDelivery{
+			ID:             uuid.New().String(),
+			ReminderJobID:  job.ID,
+			Channel:        entity.ReminderChannelPush,
+			TargetID:       token.ID,
+			Provider:       entity.ReminderDeliveryProviderOneSignal,
+			IdempotencyKey: reminderPushIdempotencyKey(job, token),
+		}, now)
+		if deliveryErr != nil {
+			failures = append(failures, deliveryErr.Error())
+			continue
+		}
+		if terminal {
+			if result.status == entity.ReminderJobStatusSent {
+				sent = true
+			}
+
+			continue
+		}
+
+		messageID, err := uc.pushSender.Send(ctx, token.Token, title, body, data, delivery.IdempotencyKey)
+		if err != nil {
 			if errors.Is(err, entity.ErrPushDeviceNotRegistered) {
 				if deactivateErr := uc.deviceRepo.Deactivate(ctx, job.UserID, token.ID, now); deactivateErr != nil {
 					failures = append(failures, deactivateErr.Error())
+				}
+				if markErr := uc.deliveryRepo.MarkSkipped(ctx, delivery.ID, entity.ErrPushDeviceNotRegistered.Error(), now); markErr != nil {
+					failures = append(failures, markErr.Error())
 				}
 
 				continue
 			}
 
+			if markErr := uc.deliveryRepo.MarkFailed(ctx, delivery.ID, err.Error(), now); markErr != nil {
+				failures = append(failures, markErr.Error())
+			}
+			failures = append(failures, err.Error())
+			continue
+		}
+
+		if err = uc.deliveryRepo.MarkSent(ctx, delivery.ID, messageID, now); err != nil {
 			failures = append(failures, err.Error())
 			continue
 		}
 
 		sent = true
+	}
+
+	if activeTargets == 0 {
+		return deliveryResult{status: entity.ReminderJobStatusSkipped, reason: "no registered push devices"}, nil
 	}
 
 	if len(failures) > 0 {
@@ -254,6 +325,27 @@ func (uc *UseCase) storeNotification(ctx context.Context, job entity.ReminderJob
 	return uc.notificationRepo.Store(ctx, &notification)
 }
 
+func (uc *UseCase) beginDelivery(ctx context.Context, delivery entity.ReminderDelivery, now time.Time) (entity.ReminderDelivery, bool, deliveryResult, error) {
+	claimed, err := uc.deliveryRepo.Begin(ctx, delivery, now)
+	if err != nil {
+		return entity.ReminderDelivery{}, false, deliveryResult{}, fmt.Errorf("ReminderUseCase - beginDelivery - uc.deliveryRepo.Begin: %w", err)
+	}
+
+	switch claimed.Status {
+	case entity.ReminderDeliveryStatusSent:
+		return claimed, true, deliveryResult{status: entity.ReminderJobStatusSent}, nil
+	case entity.ReminderDeliveryStatusSkipped:
+		reason := claimed.LastError
+		if reason == "" {
+			reason = "delivery skipped"
+		}
+
+		return claimed, true, deliveryResult{status: entity.ReminderJobStatusSkipped, reason: reason}, nil
+	default:
+		return claimed, false, deliveryResult{}, nil
+	}
+}
+
 func nextReminderJob(day entity.ImportantDay, job entity.ReminderJob, now time.Time) (entity.ReminderJob, error) {
 	nextFrom := job.OccurrenceDate.AddDate(0, 0, 1)
 	nextOccurrence, err := day.NextOccurrence(nextFrom)
@@ -283,6 +375,14 @@ func nextReminderJob(day entity.ImportantDay, job entity.ReminderJob, now time.T
 
 func reminderNotificationDedupeKey(job entity.ReminderJob) string {
 	return "reminder_job:" + job.ID + ":in_app"
+}
+
+func reminderEmailIdempotencyKey(job entity.ReminderJob) string {
+	return "reminder_job:" + job.ID + ":email"
+}
+
+func reminderPushIdempotencyKey(job entity.ReminderJob, token entity.DeviceToken) string {
+	return uuid.NewSHA1(uuid.NameSpaceOID, []byte("reminder_job:"+job.ID+":push:"+token.ID)).String()
 }
 
 func reminderCopy(day entity.ImportantDay, job entity.ReminderJob) (string, string) {

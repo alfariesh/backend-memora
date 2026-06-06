@@ -1,27 +1,26 @@
 # Devices And Push
 
-Module ini mengatur Expo push token milik user.
+Module ini mengatur OneSignal subscription ID milik user.
 
 Base path semua endpoint di dokumen ini: `/v1`.
 
 Semua endpoint di sini protected.
 
-## Expo Token Flow For FE
+## OneSignal Token Flow For FE
 
 1. App mobile meminta permission notification.
-2. App mendapatkan Expo push token lewat Expo Notifications.
-3. App mengirim token ke `POST /v1/devices/`.
+2. App mendapatkan OneSignal subscription ID dari OneSignal SDK.
+3. App mengirim subscription ID ke `POST /v1/devices/`.
 4. Backend menyimpan token aktif untuk user.
 5. Worker memakai token aktif saat mengirim reminder channel `push`.
 
-Accepted token format:
+Accepted token format adalah UUID subscription ID:
 
 ```text
-ExpoPushToken[...]
-ExponentPushToken[...]
+1dd608f2-c6a1-11e3-851d-000c2940e62c
 ```
 
-Backend hanya validasi envelope token. Validitas final tetap dari Expo saat push dikirim.
+Backend hanya validasi format UUID. Validitas final tetap dari OneSignal saat push dikirim.
 
 ## Device Object
 
@@ -29,7 +28,7 @@ Backend hanya validasi envelope token. Validitas final tetap dari Expo saat push
 {
   "id": "550e8400-e29b-41d4-a716-446655440000",
   "user_id": "550e8400-e29b-41d4-a716-446655440000",
-  "token": "ExpoPushToken[xxxxxxxxxxxxxxxxxxxxxx]",
+  "token": "1dd608f2-c6a1-11e3-851d-000c2940e62c",
   "platform": "android",
   "name": "Pixel 8",
   "active": true,
@@ -44,7 +43,7 @@ Field:
 | --- | --- | --- |
 | `id` | string UUID | Device token row ID. |
 | `user_id` | string UUID | Owner. |
-| `token` | string | Expo push token. |
+| `token` | string UUID | OneSignal subscription ID. |
 | `platform` | string | Required, max `40`. FE bebas mengirim `ios`, `android`, `web`, dll. |
 | `name` | string | Optional display name, max `255`. |
 | `active` | boolean | Hanya active token dipakai dan ditampilkan. |
@@ -66,7 +65,7 @@ Success `200`:
     {
       "id": "550e8400-e29b-41d4-a716-446655440000",
       "user_id": "550e8400-e29b-41d4-a716-446655440000",
-      "token": "ExpoPushToken[xxxxxxxxxxxxxxxxxxxxxx]",
+      "token": "1dd608f2-c6a1-11e3-851d-000c2940e62c",
       "platform": "android",
       "name": "Pixel 8",
       "active": true,
@@ -103,7 +102,7 @@ Request:
 
 ```json
 {
-  "token": "ExpoPushToken[xxxxxxxxxxxxxxxxxxxxxx]",
+  "token": "1dd608f2-c6a1-11e3-851d-000c2940e62c",
   "platform": "android",
   "name": "Pixel 8"
 }
@@ -113,7 +112,7 @@ Validation:
 
 | Field | Required | Rule |
 | --- | --- | --- |
-| `token` | yes | Must start with `ExpoPushToken[` or `ExponentPushToken[` and end with `]`. |
+| `token` | yes | Must be a valid OneSignal subscription ID UUID. |
 | `platform` | yes | max `40`. |
 | `name` | no | max `255`. |
 
@@ -123,7 +122,7 @@ Success `201`:
 {
   "id": "550e8400-e29b-41d4-a716-446655440000",
   "user_id": "550e8400-e29b-41d4-a716-446655440000",
-  "token": "ExpoPushToken[xxxxxxxxxxxxxxxxxxxxxx]",
+  "token": "1dd608f2-c6a1-11e3-851d-000c2940e62c",
   "platform": "android",
   "name": "Pixel 8",
   "active": true,
@@ -175,7 +174,7 @@ Success `200`:
 ```json
 {
   "device_id": "550e8400-e29b-41d4-a716-446655440000",
-  "ticket_id": "expo-ticket-id",
+  "ticket_id": "00000000-0000-0000-0000-000000000000",
   "sent_at": "2026-01-01T00:00:00Z"
 }
 ```
@@ -198,7 +197,7 @@ Errors:
 | `503` | `push_sender_not_configured` |
 | `500` | `internal_server_error` |
 
-If Expo returns `DeviceNotRegistered`, backend deactivates token and returns `410`.
+If OneSignal returns the subscription in `invalid_player_ids`, backend deactivates token and returns `410`.
 
 ## Delete Device
 
@@ -227,12 +226,12 @@ Errors:
 | `404` | `device_not_found` |
 | `500` | `internal_server_error` |
 
-## Expo Provider Notes
+## OneSignal Provider Notes
 
-- Backend mengirim push ke `https://exp.host/--/api/v2/push/send`.
-- Jika `EXPO_PUSH_ACCESS_TOKEN` diisi, backend mengirim header `Authorization: Bearer <token>`.
-- Jika env itu kosong, backend tetap bisa mengirim request Expo tanpa Authorization.
-- Firebase/APNs credential tidak dibutuhkan backend, tetapi tetap dibutuhkan di project Expo/EAS mobile agar device menerima push.
+- Backend mengirim push ke OneSignal Create Push Notification API.
+- Field `token` pada register device adalah OneSignal `subscription_id`.
+- Jika `ONESIGNAL_APP_ID` atau `ONESIGNAL_REST_API_KEY` kosong, push reminder/test push dianggap provider belum configured.
+- Firebase/APNs credential tetap dikonfigurasi di project mobile/OneSignal agar device menerima push.
 
 ## FE Notes
 

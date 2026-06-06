@@ -19,10 +19,10 @@ Docker image juga memiliki binary:
 ## Relevant Environment
 
 ```env
-CLOUDFLARE_EMAIL_ACCOUNT_ID=
-CLOUDFLARE_EMAIL_API_TOKEN=
-CLOUDFLARE_EMAIL_FROM_EMAIL=
-EXPO_PUSH_ACCESS_TOKEN=
+RESEND_API_KEY=
+RESEND_FROM_EMAIL=
+ONESIGNAL_APP_ID=
+ONESIGNAL_REST_API_KEY=
 REMINDER_WORKER_BATCH_SIZE=50
 REMINDER_WORKER_POLL_INTERVAL=1m
 ```
@@ -31,16 +31,16 @@ Meaning:
 
 | Env | Required | Notes |
 | --- | --- | --- |
-| `CLOUDFLARE_EMAIL_ACCOUNT_ID` | for email delivery | Cloudflare account ID. |
-| `CLOUDFLARE_EMAIL_API_TOKEN` | for email delivery | Bearer token for Cloudflare Email Service. |
-| `CLOUDFLARE_EMAIL_FROM_EMAIL` | for email delivery | Sender email from onboarded Cloudflare sending domain. |
-| `EXPO_PUSH_ACCESS_TOKEN` | optional | Sent as Expo Authorization header if present. |
+| `RESEND_API_KEY` | for email delivery | Resend API key. |
+| `RESEND_FROM_EMAIL` | for email delivery | Sender email from verified Resend domain. |
+| `ONESIGNAL_APP_ID` | for push delivery | OneSignal app ID. |
+| `ONESIGNAL_REST_API_KEY` | for push delivery | OneSignal REST API key. |
 | `REMINDER_WORKER_BATCH_SIZE` | no | Default `50`. |
 | `REMINDER_WORKER_POLL_INTERVAL` | no | Default `1m`. |
 
-Cloudflare email config kosong tidak membuat app crash. Email channel yang tidak configured akan di-skip.
+Resend config kosong tidak membuat app crash. Email channel yang tidak configured akan di-skip.
 
-Expo access token kosong juga tidak membuat app crash. Backend tetap mengirim request Expo tanpa Authorization.
+OneSignal config kosong tidak membuat app crash. Push channel yang tidak configured akan di-skip.
 
 ## Job Lifecycle
 
@@ -48,57 +48,59 @@ Expo access token kosong juga tidak membuat app crash. Backend tetap mengirim re
 2. Reminder rules dibuat atau diganti.
 3. Backend membuat pending reminder jobs berdasarkan occurrence berikutnya.
 4. Worker claim due jobs sesuai batch size.
-5. Worker filter channels berdasarkan user settings terbaru.
-6. Worker mencoba delivery ke channel yang tersisa.
-7. Jika job dianggap sukses, worker mark sent dan schedule occurrence tahun berikutnya.
-8. Jika job gagal total, worker mark failed dan retry sampai attempt ketiga.
+5. Worker filter channel job berdasarkan user settings terbaru.
+6. Worker mencoba delivery untuk satu channel job itu.
+7. Jika job `sent` atau `skipped`, worker finish job dan schedule occurrence tahun berikutnya dalam satu transaksi.
+8. Jika job gagal transient, worker mark failed dan retry sampai attempt ketiga.
 
 ## Channel Filtering
 
-Rule tersimpan pada job, tetapi sebelum delivery worker melihat user settings terbaru.
+Rule menyimpan `channels`, tetapi backend membuat satu pending job per channel. Sebelum delivery, worker tetap melihat user settings terbaru.
 
 Contoh:
 
 ```json
 {
-  "job_channels": ["email", "in_app", "push"],
+  "job_channel": "email",
   "user_notification_channels": ["in_app", "push"]
 }
 ```
 
-Worker hanya mencoba `in_app` dan `push`.
+Worker skip job `email` karena channel itu tidak aktif di user settings.
 
 Jika `notification_channels` user settings adalah `[]`, tidak ada channel yang dikirim.
 
 ## Delivery Behavior
 
-Worker mencoba channel berikut jika ada dalam filtered channels:
+Worker memproses channel sesuai `reminder_jobs.channel`:
 
 | Channel | Behavior |
 | --- | --- |
-| `email` | Kirim HTML email via Cloudflare Email Service. Jika Cloudflare config kosong, channel email di-skip tanpa failure. |
-| `in_app` | Simpan notification ke database. Ini yang muncul di `/v1/notifications/`. |
-| `push` | Kirim Expo push ke semua active device tokens user. Jika tidak ada active device, ini tidak dianggap failure. |
+| `email` | Kirim HTML email via Resend dengan deterministic idempotency key. Jika Resend config kosong, channel email di-skip tanpa retry. |
+| `in_app` | Simpan notification ke database dengan `dedupe_key`. Ini yang muncul di `/v1/notifications/`. |
+| `push` | Kirim OneSignal push ke semua active OneSignal subscription IDs user dengan per-device idempotency key. Jika tidak ada active device, channel di-skip tanpa retry. |
 
-Job dianggap sukses jika:
+Job dianggap `sent` jika:
 
-- Minimal satu channel berhasil, atau
-- Tidak ada failure yang perlu di-retry.
+- Channel provider berhasil, atau
+- In-app notification berhasil disimpan.
 
-Job dianggap gagal jika:
+Job dianggap `skipped` jika:
 
-- Ada failure provider/database, dan
-- Tidak ada channel lain yang berhasil.
+- Channel disabled di user settings.
+- Provider belum configured.
+- Push tidak punya target aktif.
+- Push target hanya berisi device yang sudah tidak terdaftar.
 
-Jika ada failure tetapi channel lain berhasil, job tetap ditandai sent. Contoh: in-app berhasil tetapi push provider gagal, user tetap punya in-app notification dan job tidak retry.
+Job dianggap `failed` dan retry-able jika ada failure transient provider/database. Karena job sudah per-channel, email gagal tidak menghilangkan retry push atau in-app, dan sebaliknya.
 
 ## Push DeviceNotRegistered
 
-Jika Expo mengembalikan `DeviceNotRegistered`:
+Jika OneSignal mengembalikan subscription ID dalam `invalid_player_ids`:
 
 - Backend deactivate token itu.
 - Worker lanjut memproses token lain.
-- Error ini tidak otomatis membuat semua job gagal jika tidak ada failure lain.
+- Error ini menjadi delivery `skipped`, bukan transient failure.
 
 Untuk endpoint test push, kondisi ini dikembalikan sebagai:
 

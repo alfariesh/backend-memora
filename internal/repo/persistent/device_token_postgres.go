@@ -24,9 +24,9 @@ func NewDeviceTokenRepo(pg *postgres.Postgres) *DeviceTokenRepo {
 func (r *DeviceTokenRepo) Store(ctx context.Context, token *entity.DeviceToken) error {
 	sql, args, err := r.Builder.
 		Insert("device_tokens").
-		Columns("id, user_id, token, platform, name, active, created_at, updated_at").
-		Values(token.ID, token.UserID, token.Token, token.Platform, token.Name, token.Active, token.CreatedAt, token.UpdatedAt).
-		Suffix("ON CONFLICT (user_id, token) DO UPDATE SET platform = EXCLUDED.platform, name = EXCLUDED.name, active = true, updated_at = EXCLUDED.updated_at RETURNING id, created_at").
+		Columns("id, user_id, token, platform, name, provider, active, created_at, updated_at").
+		Values(token.ID, token.UserID, token.Token, token.Platform, token.Name, token.Provider, token.Active, token.CreatedAt, token.UpdatedAt).
+		Suffix("ON CONFLICT (user_id, token) DO UPDATE SET platform = EXCLUDED.platform, name = EXCLUDED.name, provider = EXCLUDED.provider, active = true, updated_at = EXCLUDED.updated_at RETURNING id, created_at").
 		ToSql()
 	if err != nil {
 		return fmt.Errorf("DeviceTokenRepo - Store - r.Builder: %w", err)
@@ -72,7 +72,7 @@ func (r *DeviceTokenRepo) Deactivate(ctx context.Context, userID, id string, at 
 // ListActiveByUser -.
 func (r *DeviceTokenRepo) ListActiveByUser(ctx context.Context, userID string) ([]entity.DeviceToken, error) {
 	sql, args, err := r.Builder.
-		Select("id, user_id, token, platform, name, active, created_at, updated_at").
+		Select("id, user_id, token, platform, name, provider, active, created_at, updated_at").
 		From("device_tokens").
 		Where(sq.Eq{"user_id": userID, "active": true}).
 		OrderBy("updated_at DESC").
@@ -97,6 +97,7 @@ func (r *DeviceTokenRepo) ListActiveByUser(ctx context.Context, userID string) (
 			&token.Token,
 			&token.Platform,
 			&token.Name,
+			&token.Provider,
 			&token.Active,
 			&token.CreatedAt,
 			&token.UpdatedAt,

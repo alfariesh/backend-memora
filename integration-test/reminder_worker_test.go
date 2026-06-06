@@ -21,7 +21,7 @@ type unexpectedIntegrationEmailSender struct {
 	t *testing.T
 }
 
-func (s unexpectedIntegrationEmailSender) Send(_ context.Context, _, _, _ string) (string, error) {
+func (s unexpectedIntegrationEmailSender) Send(_ context.Context, _, _, _, _ string) (string, error) {
 	s.t.Helper()
 	s.t.Fatal("email sender should not be called for in-app only reminder job")
 
@@ -32,7 +32,7 @@ type unexpectedIntegrationPushSender struct {
 	t *testing.T
 }
 
-func (s unexpectedIntegrationPushSender) Send(_ context.Context, _, _, _ string, _ map[string]string) (string, error) {
+func (s unexpectedIntegrationPushSender) Send(_ context.Context, _, _, _ string, _ map[string]string, _ string) (string, error) {
 	s.t.Helper()
 	s.t.Fatal("push sender should not be called for in-app only reminder job")
 
@@ -50,6 +50,7 @@ func TestReminderWorkerRunOnceProcessesDueInAppJob(t *testing.T) {
 	ruleRepo := persistent.NewReminderRuleRepo(pg)
 	jobRepo := persistent.NewReminderJobRepo(pg)
 	notificationRepo := persistent.NewNotificationRepo(pg)
+	deliveryRepo := persistent.NewReminderDeliveryRepo(pg)
 
 	now := time.Date(2026, 5, 13, 9, 0, 0, 0, time.UTC)
 	userID := uuid.NewString()
@@ -139,6 +140,7 @@ func TestReminderWorkerRunOnceProcessesDueInAppJob(t *testing.T) {
 		settingsRepo,
 		notificationRepo,
 		persistent.NewDeviceTokenRepo(pg),
+		deliveryRepo,
 		unexpectedIntegrationEmailSender{t: t},
 		unexpectedIntegrationPushSender{t: t},
 	)
@@ -250,6 +252,95 @@ func TestReminderJobRepoFinishWithNextAtomic(t *testing.T) {
 
 	assertOriginalReminderJobSent(t, ctx, pg, currentJob.ID, now)
 	assertNextReminderJobScheduled(t, ctx, pg, userID, dayID, currentJob.ID, ruleID)
+}
+
+func TestReminderDeliveryRepoBeginRetryAndTerminalPreservation(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+
+	pg := openIntegrationPostgres(t)
+	now := time.Date(2026, 5, 13, 9, 0, 0, 0, time.UTC)
+	userID, dayID, ruleID := seedReminderDay(t, ctx, pg, now)
+	jobRepo := persistent.NewReminderJobRepo(pg)
+	deliveryRepo := persistent.NewReminderDeliveryRepo(pg)
+
+	job := entity.ReminderJob{
+		ID:             uuid.NewString(),
+		UserID:         userID,
+		ImportantDayID: dayID,
+		ReminderRuleID: &ruleID,
+		OccurrenceDate: time.Date(2026, 5, 20, 0, 0, 0, 0, time.UTC),
+		OffsetDays:     7,
+		Channel:        entity.ReminderChannelEmail,
+		ScheduledAt:    now.Add(-time.Hour),
+		Status:         entity.ReminderJobStatusPending,
+		CreatedAt:      now,
+		UpdatedAt:      now,
+	}
+	if err := jobRepo.Store(ctx, &job); err != nil {
+		t.Fatalf("store reminder job: %v", err)
+	}
+
+	baseDelivery := entity.ReminderDelivery{
+		ID:             uuid.NewString(),
+		ReminderJobID:  job.ID,
+		Channel:        entity.ReminderChannelEmail,
+		TargetID:       userID,
+		Provider:       entity.ReminderDeliveryProviderResend,
+		IdempotencyKey: "reminder_job:" + job.ID + ":email",
+	}
+
+	first, err := deliveryRepo.Begin(ctx, baseDelivery, now)
+	if err != nil {
+		t.Fatalf("begin first delivery: %v", err)
+	}
+	if first.Status != entity.ReminderDeliveryStatusSending || first.Attempts != 1 {
+		t.Fatalf("unexpected first delivery state: status=%s attempts=%d", first.Status, first.Attempts)
+	}
+
+	if err := deliveryRepo.MarkFailed(ctx, first.ID, "transient resend error", now.Add(time.Minute)); err != nil {
+		t.Fatalf("mark delivery failed: %v", err)
+	}
+
+	retry, err := deliveryRepo.Begin(ctx, baseDelivery, now.Add(2*time.Minute))
+	if err != nil {
+		t.Fatalf("begin retry delivery: %v", err)
+	}
+	if retry.ID != first.ID {
+		t.Fatalf("expected retry to reuse delivery id %s, got %s", first.ID, retry.ID)
+	}
+	if retry.Status != entity.ReminderDeliveryStatusSending || retry.Attempts != 2 || retry.LastError != "" {
+		t.Fatalf("unexpected retry delivery state: status=%s attempts=%d last_error=%q", retry.Status, retry.Attempts, retry.LastError)
+	}
+
+	if err := deliveryRepo.MarkSent(ctx, retry.ID, "email-message-id", now.Add(3*time.Minute)); err != nil {
+		t.Fatalf("mark delivery sent: %v", err)
+	}
+
+	terminalInput := baseDelivery
+	terminalInput.ID = uuid.NewString()
+	terminalInput.IdempotencyKey = "reminder_job:" + job.ID + ":email:ignored"
+	terminal, err := deliveryRepo.Begin(ctx, terminalInput, now.Add(4*time.Minute))
+	if err != nil {
+		t.Fatalf("begin terminal delivery: %v", err)
+	}
+	if terminal.ID != first.ID {
+		t.Fatalf("expected terminal begin to return original delivery id %s, got %s", first.ID, terminal.ID)
+	}
+	if terminal.Status != entity.ReminderDeliveryStatusSent || terminal.Attempts != 2 {
+		t.Fatalf("unexpected terminal delivery state: status=%s attempts=%d", terminal.Status, terminal.Attempts)
+	}
+	if terminal.ProviderMessageID != "email-message-id" {
+		t.Fatalf("expected provider message id email-message-id, got %s", terminal.ProviderMessageID)
+	}
+
+	var count int
+	if err := pg.Pool.QueryRow(ctx, "SELECT COUNT(*) FROM reminder_deliveries WHERE reminder_job_id = $1", job.ID).Scan(&count); err != nil {
+		t.Fatalf("count reminder deliveries: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("expected one delivery row, got %d", count)
+	}
 }
 
 func TestNotificationRepoDedupeKey(t *testing.T) {

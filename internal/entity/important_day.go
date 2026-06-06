@@ -3,6 +3,8 @@ package entity
 import (
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 const (
@@ -163,6 +165,22 @@ const (
 	ReminderJobStatusSkipped ReminderJobStatus = "skipped"
 )
 
+// ReminderDeliveryStatus -.
+type ReminderDeliveryStatus string
+
+const (
+	ReminderDeliveryStatusPending ReminderDeliveryStatus = "pending"
+	ReminderDeliveryStatusSending ReminderDeliveryStatus = "sending"
+	ReminderDeliveryStatusSent    ReminderDeliveryStatus = "sent"
+	ReminderDeliveryStatusSkipped ReminderDeliveryStatus = "skipped"
+	ReminderDeliveryStatusFailed  ReminderDeliveryStatus = "failed"
+)
+
+const (
+	ReminderDeliveryProviderResend    = "resend"
+	ReminderDeliveryProviderOneSignal = "onesignal"
+)
+
 // ReminderJob -.
 type ReminderJob struct {
 	ID             string            `json:"id"`
@@ -180,6 +198,23 @@ type ReminderJob struct {
 	SentAt         *time.Time        `json:"sent_at"`
 	CreatedAt      time.Time         `json:"created_at"`
 	UpdatedAt      time.Time         `json:"updated_at"`
+}
+
+// ReminderDelivery tracks external provider delivery attempts for a reminder job.
+type ReminderDelivery struct {
+	ID                string                 `json:"id"`
+	ReminderJobID     string                 `json:"reminder_job_id"`
+	Channel           ReminderChannel        `json:"channel"`
+	TargetID          string                 `json:"target_id"`
+	Provider          string                 `json:"provider"`
+	IdempotencyKey    string                 `json:"idempotency_key"`
+	Status            ReminderDeliveryStatus `json:"status"`
+	Attempts          int                    `json:"attempts"`
+	ProviderMessageID string                 `json:"provider_message_id"`
+	LastError         string                 `json:"last_error"`
+	SentAt            *time.Time             `json:"sent_at"`
+	CreatedAt         time.Time              `json:"created_at"`
+	UpdatedAt         time.Time              `json:"updated_at"`
 }
 
 // Notification -.
@@ -200,13 +235,18 @@ type Notification struct {
 type DeviceToken struct {
 	ID        string    `json:"id"         example:"550e8400-e29b-41d4-a716-446655440000"`
 	UserID    string    `json:"user_id"    example:"550e8400-e29b-41d4-a716-446655440000"`
-	Token     string    `json:"token"      example:"ExpoPushToken[xxxxxxxxxxxxxxxxxxxxxx]"`
+	Token     string    `json:"token"      example:"1dd608f2-c6a1-11e3-851d-000c2940e62c"`
 	Platform  string    `json:"platform"   example:"android"`
 	Name      string    `json:"name"       example:"Pixel 8"`
+	Provider  string    `json:"-"`
 	Active    bool      `json:"active"     example:"true"`
 	CreatedAt time.Time `json:"created_at" example:"2026-01-01T00:00:00Z"`
 	UpdatedAt time.Time `json:"updated_at" example:"2026-01-01T00:00:00Z"`
 } // @name entity.DeviceToken
+
+const (
+	DeviceTokenProviderOneSignal = "onesignal"
+)
 
 // PushTestResult -.
 type PushTestResult struct {
@@ -215,10 +255,11 @@ type PushTestResult struct {
 	SentAt   time.Time `json:"sent_at"   example:"2026-01-01T00:00:00Z"`
 } // @name entity.PushTestResult
 
-// IsExpoPushToken reports whether token looks like an Expo push token.
-func IsExpoPushToken(token string) bool {
-	return hasPushTokenEnvelope(token, "ExpoPushToken[") ||
-		hasPushTokenEnvelope(token, "ExponentPushToken[")
+// IsOneSignalSubscriptionID reports whether token looks like a OneSignal subscription ID.
+func IsOneSignalSubscriptionID(token string) bool {
+	_, err := uuid.Parse(strings.TrimSpace(token))
+
+	return err == nil
 }
 
 // NormalizeImportantDay fills defaults and validates date-only fields.
@@ -467,10 +508,4 @@ func dateOnly(t time.Time, loc *time.Location) time.Time {
 
 func isLeapYear(year int) bool {
 	return year%4 == 0 && (year%100 != 0 || year%400 == 0)
-}
-
-func hasPushTokenEnvelope(token, prefix string) bool {
-	return strings.HasPrefix(token, prefix) &&
-		strings.HasSuffix(token, "]") &&
-		len(token) > len(prefix)+1
 }

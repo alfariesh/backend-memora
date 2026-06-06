@@ -21,6 +21,7 @@ type reminderUseCaseDeps struct {
 	settingsRepo     *MockUserSettingsRepo
 	notificationRepo *MockNotificationRepo
 	deviceRepo       *MockDeviceTokenRepo
+	deliveryRepo     *MockReminderDeliveryRepo
 	emailSender      *MockEmailSender
 	pushSender       *MockPushSender
 }
@@ -36,6 +37,7 @@ func newReminderUseCase(t *testing.T) (*reminder.UseCase, reminderUseCaseDeps) {
 		settingsRepo:     NewMockUserSettingsRepo(ctrl),
 		notificationRepo: NewMockNotificationRepo(ctrl),
 		deviceRepo:       NewMockDeviceTokenRepo(ctrl),
+		deliveryRepo:     NewMockReminderDeliveryRepo(ctrl),
 		emailSender:      NewMockEmailSender(ctrl),
 		pushSender:       NewMockPushSender(ctrl),
 	}
@@ -47,6 +49,7 @@ func newReminderUseCase(t *testing.T) (*reminder.UseCase, reminderUseCaseDeps) {
 		deps.settingsRepo,
 		deps.notificationRepo,
 		deps.deviceRepo,
+		deps.deliveryRepo,
 		deps.emailSender,
 		deps.pushSender,
 	)
@@ -117,6 +120,45 @@ func expectEmailUserLoaded(deps reminderUseCaseDeps, job entity.ReminderJob, use
 	deps.userRepo.EXPECT().
 		GetByID(context.Background(), job.UserID).
 		Return(user, nil)
+}
+
+func expectDeliveryBegin(
+	t *testing.T,
+	deps reminderUseCaseDeps,
+	now time.Time,
+	expected entity.ReminderDelivery,
+	status entity.ReminderDeliveryStatus,
+) entity.ReminderDelivery {
+	t.Helper()
+
+	if expected.ID == "" {
+		expected.ID = "delivery-id-123"
+	}
+
+	returned := expected
+	returned.Status = status
+	returned.CreatedAt = now
+	returned.UpdatedAt = now
+
+	deps.deliveryRepo.EXPECT().
+		Begin(context.Background(), gomock.AssignableToTypeOf(entity.ReminderDelivery{}), now).
+		DoAndReturn(func(_ context.Context, delivery entity.ReminderDelivery, _ time.Time) (entity.ReminderDelivery, error) {
+			require.NotEmpty(t, delivery.ID)
+			assert.Equal(t, expected.ReminderJobID, delivery.ReminderJobID)
+			assert.Equal(t, expected.Channel, delivery.Channel)
+			assert.Equal(t, expected.TargetID, delivery.TargetID)
+			assert.Equal(t, expected.Provider, delivery.Provider)
+			if expected.IdempotencyKey == "" {
+				assert.NotEmpty(t, delivery.IdempotencyKey)
+				returned.IdempotencyKey = delivery.IdempotencyKey
+			} else {
+				assert.Equal(t, expected.IdempotencyKey, delivery.IdempotencyKey)
+			}
+
+			return returned, nil
+		})
+
+	return returned
 }
 
 func expectJobFinishedWithNext(
@@ -194,15 +236,79 @@ func TestReminderRunOnceSkipsUnconfiguredEmail(t *testing.T) {
 	uc, deps := newReminderUseCase(t)
 	expectReminderJobLoaded(deps, now, job, day)
 	expectEmailUserLoaded(deps, job, user)
+	delivery := expectDeliveryBegin(t, deps, now, entity.ReminderDelivery{
+		ReminderJobID:  job.ID,
+		Channel:        entity.ReminderChannelEmail,
+		TargetID:       user.ID,
+		Provider:       entity.ReminderDeliveryProviderResend,
+		IdempotencyKey: "reminder_job:" + job.ID + ":email",
+	}, entity.ReminderDeliveryStatusSending)
 	deps.emailSender.EXPECT().
 		Send(
 			context.Background(),
 			user.Email,
 			"Mom birthday is in 7 days",
 			gomock.Any(),
+			"reminder_job:"+job.ID+":email",
 		).
 		Return("", entity.ErrEmailSenderNotConfigured)
+	deps.deliveryRepo.EXPECT().
+		MarkSkipped(context.Background(), delivery.ID, entity.ErrEmailSenderNotConfigured.Error(), now).
+		Return(nil)
 	expectJobFinishedWithNext(t, deps, now, job, entity.ReminderJobStatusSkipped, entity.ErrEmailSenderNotConfigured.Error())
+
+	processed, err := uc.RunOnce(context.Background(), now, 10)
+
+	require.NoError(t, err)
+	assert.Equal(t, 1, processed)
+}
+
+func TestReminderRunOnceEmailSuccessMarksDeliverySent(t *testing.T) {
+	t.Parallel()
+
+	now, job, day, user := reminderFixtures()
+	job.Channel = entity.ReminderChannelEmail
+	uc, deps := newReminderUseCase(t)
+	expectReminderJobLoaded(deps, now, job, day)
+	expectEmailUserLoaded(deps, job, user)
+	delivery := expectDeliveryBegin(t, deps, now, entity.ReminderDelivery{
+		ReminderJobID:  job.ID,
+		Channel:        entity.ReminderChannelEmail,
+		TargetID:       user.ID,
+		Provider:       entity.ReminderDeliveryProviderResend,
+		IdempotencyKey: "reminder_job:" + job.ID + ":email",
+	}, entity.ReminderDeliveryStatusSending)
+	deps.emailSender.EXPECT().
+		Send(context.Background(), user.Email, "Mom birthday is in 7 days", gomock.Any(), "reminder_job:"+job.ID+":email").
+		Return("resend-email-id", nil)
+	deps.deliveryRepo.EXPECT().
+		MarkSent(context.Background(), delivery.ID, "resend-email-id", now).
+		Return(nil)
+	expectJobFinishedWithNext(t, deps, now, job, entity.ReminderJobStatusSent, "")
+
+	processed, err := uc.RunOnce(context.Background(), now, 10)
+
+	require.NoError(t, err)
+	assert.Equal(t, 1, processed)
+}
+
+func TestReminderRunOnceSentEmailDeliveryDoesNotResend(t *testing.T) {
+	t.Parallel()
+
+	now, job, day, user := reminderFixtures()
+	job.Channel = entity.ReminderChannelEmail
+	uc, deps := newReminderUseCase(t)
+	expectReminderJobLoaded(deps, now, job, day)
+	expectEmailUserLoaded(deps, job, user)
+	expectDeliveryBegin(t, deps, now, entity.ReminderDelivery{
+		ReminderJobID:     job.ID,
+		Channel:           entity.ReminderChannelEmail,
+		TargetID:          user.ID,
+		Provider:          entity.ReminderDeliveryProviderResend,
+		IdempotencyKey:    "reminder_job:" + job.ID + ":email",
+		ProviderMessageID: "resend-email-id",
+	}, entity.ReminderDeliveryStatusSent)
+	expectJobFinishedWithNext(t, deps, now, job, entity.ReminderJobStatusSent, "")
 
 	processed, err := uc.RunOnce(context.Background(), now, 10)
 
@@ -242,9 +348,19 @@ func TestReminderRunOnceEmailFailureDoesNotBlockInAppJob(t *testing.T) {
 		Return(settings, nil).
 		Times(2)
 	expectEmailUserLoaded(deps, emailJob, user)
+	emailDelivery := expectDeliveryBegin(t, deps, now, entity.ReminderDelivery{
+		ReminderJobID:  emailJob.ID,
+		Channel:        entity.ReminderChannelEmail,
+		TargetID:       user.ID,
+		Provider:       entity.ReminderDeliveryProviderResend,
+		IdempotencyKey: "reminder_job:" + emailJob.ID + ":email",
+	}, entity.ReminderDeliveryStatusSending)
 	deps.emailSender.EXPECT().
-		Send(context.Background(), user.Email, "Mom birthday is in 7 days", gomock.Any()).
+		Send(context.Background(), user.Email, "Mom birthday is in 7 days", gomock.Any(), "reminder_job:"+emailJob.ID+":email").
 		Return("", errInternalServErr)
+	deps.deliveryRepo.EXPECT().
+		MarkFailed(context.Background(), emailDelivery.ID, gomock.Any(), now).
+		Return(nil)
 	deps.jobRepo.EXPECT().
 		MarkFailed(context.Background(), emailJob.ID, gomock.Any(), true).
 		DoAndReturn(func(_ context.Context, _ string, reason string, retry bool) error {
@@ -279,19 +395,29 @@ func TestReminderRunOnceDeactivatesUnregisteredPushToken(t *testing.T) {
 	deps.deviceRepo.EXPECT().
 		ListActiveByUser(context.Background(), job.UserID).
 		Return([]entity.DeviceToken{
-			{ID: "device-id-123", UserID: job.UserID, Token: "ExpoPushToken[test]", Active: true},
+			{ID: "device-id-123", UserID: job.UserID, Token: "11111111-1111-4111-8111-111111111111", Provider: entity.DeviceTokenProviderOneSignal, Active: true},
 		}, nil)
+	delivery := expectDeliveryBegin(t, deps, now, entity.ReminderDelivery{
+		ReminderJobID: job.ID,
+		Channel:       entity.ReminderChannelPush,
+		TargetID:      "device-id-123",
+		Provider:      entity.ReminderDeliveryProviderOneSignal,
+	}, entity.ReminderDeliveryStatusSending)
 	deps.pushSender.EXPECT().
 		Send(
 			context.Background(),
-			"ExpoPushToken[test]",
+			"11111111-1111-4111-8111-111111111111",
 			"Mom birthday is in 7 days",
 			"Mom birthday is coming in 7 days.",
+			gomock.Any(),
 			gomock.Any(),
 		).
 		Return("", fmt.Errorf("%w: inactive token", entity.ErrPushDeviceNotRegistered))
 	deps.deviceRepo.EXPECT().
 		Deactivate(context.Background(), job.UserID, "device-id-123", now).
+		Return(nil)
+	deps.deliveryRepo.EXPECT().
+		MarkSkipped(context.Background(), delivery.ID, entity.ErrPushDeviceNotRegistered.Error(), now).
 		Return(nil)
 	expectJobFinishedWithNext(t, deps, now, job, entity.ReminderJobStatusSkipped, "no registered push devices")
 
@@ -312,6 +438,33 @@ func TestReminderRunOnceSkipsPushWithoutActiveTokens(t *testing.T) {
 		ListActiveByUser(context.Background(), job.UserID).
 		Return([]entity.DeviceToken{}, nil)
 	expectJobFinishedWithNext(t, deps, now, job, entity.ReminderJobStatusSkipped, "no active push tokens")
+
+	processed, err := uc.RunOnce(context.Background(), now, 10)
+
+	require.NoError(t, err)
+	assert.Equal(t, 1, processed)
+}
+
+func TestReminderRunOnceSentPushDeliveryDoesNotResend(t *testing.T) {
+	t.Parallel()
+
+	now, job, day, _ := reminderFixtures()
+	job.Channel = entity.ReminderChannelPush
+	uc, deps := newReminderUseCase(t)
+	expectReminderJobLoaded(deps, now, job, day)
+	deps.deviceRepo.EXPECT().
+		ListActiveByUser(context.Background(), job.UserID).
+		Return([]entity.DeviceToken{
+			{ID: "device-id-123", UserID: job.UserID, Token: "11111111-1111-4111-8111-111111111111", Provider: entity.DeviceTokenProviderOneSignal, Active: true},
+		}, nil)
+	expectDeliveryBegin(t, deps, now, entity.ReminderDelivery{
+		ReminderJobID:     job.ID,
+		Channel:           entity.ReminderChannelPush,
+		TargetID:          "device-id-123",
+		Provider:          entity.ReminderDeliveryProviderOneSignal,
+		ProviderMessageID: "onesignal-notification-id",
+	}, entity.ReminderDeliveryStatusSent)
+	expectJobFinishedWithNext(t, deps, now, job, entity.ReminderJobStatusSent, "")
 
 	processed, err := uc.RunOnce(context.Background(), now, 10)
 
@@ -356,17 +509,27 @@ func TestReminderRunOnceMarksFailedOnPushFailure(t *testing.T) {
 	deps.deviceRepo.EXPECT().
 		ListActiveByUser(context.Background(), job.UserID).
 		Return([]entity.DeviceToken{
-			{ID: "device-id-123", UserID: job.UserID, Token: "ExpoPushToken[test]", Active: true},
+			{ID: "device-id-123", UserID: job.UserID, Token: "11111111-1111-4111-8111-111111111111", Provider: entity.DeviceTokenProviderOneSignal, Active: true},
 		}, nil)
+	delivery := expectDeliveryBegin(t, deps, now, entity.ReminderDelivery{
+		ReminderJobID: job.ID,
+		Channel:       entity.ReminderChannelPush,
+		TargetID:      "device-id-123",
+		Provider:      entity.ReminderDeliveryProviderOneSignal,
+	}, entity.ReminderDeliveryStatusSending)
 	deps.pushSender.EXPECT().
 		Send(
 			context.Background(),
-			"ExpoPushToken[test]",
+			"11111111-1111-4111-8111-111111111111",
 			"Mom birthday is in 7 days",
 			"Mom birthday is coming in 7 days.",
 			gomock.Any(),
+			gomock.Any(),
 		).
 		Return("", errInternalServErr)
+	deps.deliveryRepo.EXPECT().
+		MarkFailed(context.Background(), delivery.ID, gomock.Any(), now).
+		Return(nil)
 	deps.jobRepo.EXPECT().
 		MarkFailed(context.Background(), job.ID, gomock.Any(), true).
 		DoAndReturn(func(_ context.Context, _ string, reason string, retry bool) error {
@@ -394,17 +557,27 @@ func TestReminderRunOnceFinalAttemptMarksFailedWithoutRetry(t *testing.T) {
 	deps.deviceRepo.EXPECT().
 		ListActiveByUser(context.Background(), job.UserID).
 		Return([]entity.DeviceToken{
-			{ID: "device-id-123", UserID: job.UserID, Token: "ExpoPushToken[test]", Active: true},
+			{ID: "device-id-123", UserID: job.UserID, Token: "11111111-1111-4111-8111-111111111111", Provider: entity.DeviceTokenProviderOneSignal, Active: true},
 		}, nil)
+	delivery := expectDeliveryBegin(t, deps, now, entity.ReminderDelivery{
+		ReminderJobID: job.ID,
+		Channel:       entity.ReminderChannelPush,
+		TargetID:      "device-id-123",
+		Provider:      entity.ReminderDeliveryProviderOneSignal,
+	}, entity.ReminderDeliveryStatusSending)
 	deps.pushSender.EXPECT().
 		Send(
 			context.Background(),
-			"ExpoPushToken[test]",
+			"11111111-1111-4111-8111-111111111111",
 			"Mom birthday is in 7 days",
 			"Mom birthday is coming in 7 days.",
 			gomock.Any(),
+			gomock.Any(),
 		).
 		Return("", errInternalServErr)
+	deps.deliveryRepo.EXPECT().
+		MarkFailed(context.Background(), delivery.ID, gomock.Any(), now).
+		Return(nil)
 	deps.jobRepo.EXPECT().
 		MarkFailed(context.Background(), job.ID, gomock.Any(), false).
 		DoAndReturn(func(_ context.Context, _ string, reason string, retry bool) error {

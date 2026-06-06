@@ -127,7 +127,7 @@ func TestFilterReminderChannels(t *testing.T) {
 	assert.Equal(t, []entity.ReminderChannel{entity.ReminderChannelInApp, entity.ReminderChannelPush}, filtered)
 }
 
-func TestIsExpoPushToken(t *testing.T) {
+func TestIsOneSignalSubscriptionID(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
@@ -135,10 +135,9 @@ func TestIsExpoPushToken(t *testing.T) {
 		token string
 		want  bool
 	}{
-		{name: "expo token", token: "ExpoPushToken[abc123]", want: true},
-		{name: "legacy exponent token", token: "ExponentPushToken[abc123]", want: true},
-		{name: "empty payload", token: "ExpoPushToken[]", want: false},
-		{name: "missing suffix", token: "ExpoPushToken[abc123", want: false},
+		{name: "uuid subscription id", token: "1dd608f2-c6a1-11e3-851d-000c2940e62c", want: true},
+		{name: "trimmed uuid subscription id", token: " 1dd608f2-c6a1-11e3-851d-000c2940e62c ", want: true},
+		{name: "non uuid token", token: "push-token[abc123]", want: false},
 		{name: "native token", token: "fcm-token", want: false},
 		{name: "empty", token: "", want: false},
 	}
@@ -147,7 +146,7 @@ func TestIsExpoPushToken(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			assert.Equal(t, tc.want, entity.IsExpoPushToken(tc.token))
+			assert.Equal(t, tc.want, entity.IsOneSignalSubscriptionID(tc.token))
 		})
 	}
 }

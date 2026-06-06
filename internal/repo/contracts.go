@@ -59,6 +59,14 @@ type (
 		MarkFailed(ctx context.Context, id, reason string, retry bool) error
 	}
 
+	// ReminderDeliveryRepo -.
+	ReminderDeliveryRepo interface {
+		Begin(ctx context.Context, delivery entity.ReminderDelivery, now time.Time) (entity.ReminderDelivery, error)
+		MarkSent(ctx context.Context, id, providerMessageID string, sentAt time.Time) error
+		MarkSkipped(ctx context.Context, id, reason string, skippedAt time.Time) error
+		MarkFailed(ctx context.Context, id, reason string, failedAt time.Time) error
+	}
+
 	// NotificationRepo -.
 	NotificationRepo interface {
 		Store(ctx context.Context, notification *entity.Notification) error
@@ -79,12 +87,12 @@ type (
 
 	// EmailSender -.
 	EmailSender interface {
-		Send(ctx context.Context, to, subject, html string) (string, error)
+		Send(ctx context.Context, to, subject, html, idempotencyKey string) (string, error)
 	}
 
 	// PushSender -.
 	PushSender interface {
-		Send(ctx context.Context, token, title, body string, data map[string]string) (string, error)
+		Send(ctx context.Context, token, title, body string, data map[string]string, idempotencyKey string) (string, error)
 	}
 
 	// ImportantDayFilter -.

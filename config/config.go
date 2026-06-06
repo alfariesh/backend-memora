@@ -10,19 +10,19 @@ import (
 type (
 	// Config -.
 	Config struct {
-		App     app
-		HTTP    http
-		Log     log
-		PG      pg
-		GRPC    grpc
-		RMQ     rmq
-		NATS    nats
-		JWT     jwt
-		Metrics metrics
-		Swagger swagger
-		Email   cloudflareEmail
-		Expo    expo
-		Worker  worker
+		App       app
+		HTTP      http
+		Log       log
+		PG        pg
+		GRPC      grpc
+		RMQ       rmq
+		NATS      nats
+		JWT       jwt
+		Metrics   metrics
+		Swagger   swagger
+		Resend    resend
+		OneSignal oneSignal
+		Worker    worker
 	}
 
 	// App -.
@@ -83,16 +83,16 @@ type (
 		Enabled bool `env:"SWAGGER_ENABLED" envDefault:"false"`
 	}
 
-	// Cloudflare Email Service -.
-	cloudflareEmail struct {
-		AccountID string `env:"CLOUDFLARE_EMAIL_ACCOUNT_ID" envDefault:""`
-		APIToken  string `env:"CLOUDFLARE_EMAIL_API_TOKEN"  envDefault:""`
-		FromEmail string `env:"CLOUDFLARE_EMAIL_FROM_EMAIL" envDefault:""`
+	// Resend Email Service -.
+	resend struct {
+		APIKey    string `env:"RESEND_API_KEY"    envDefault:""`
+		FromEmail string `env:"RESEND_FROM_EMAIL" envDefault:""`
 	}
 
-	// Expo -.
-	expo struct {
-		PushAccessToken string `env:"EXPO_PUSH_ACCESS_TOKEN" envDefault:""`
+	// OneSignal Push Service -.
+	oneSignal struct {
+		AppID      string `env:"ONESIGNAL_APP_ID"       envDefault:""`
+		RESTAPIKey string `env:"ONESIGNAL_REST_API_KEY" envDefault:""`
 	}
 
 	// Worker -.

@@ -10,8 +10,8 @@ Backend API for Memora: authentication, important days, reminder rules, notifica
 - RabbitMQ RPC
 - NATS RPC
 - PostgreSQL
-- Cloudflare Email Service
-- Expo push notifications
+- Resend email delivery
+- OneSignal push notifications
 
 ## Quick Start
 
@@ -47,18 +47,18 @@ make compose-up-integration-test
 
 Configuration is loaded from environment variables. Start from [.env.example](.env.example).
 
-Email reminders use Cloudflare Email Service:
+Email reminders use Resend:
 
 ```env
-CLOUDFLARE_EMAIL_ACCOUNT_ID=
-CLOUDFLARE_EMAIL_API_TOKEN=
-CLOUDFLARE_EMAIL_FROM_EMAIL=
+RESEND_API_KEY=
+RESEND_FROM_EMAIL=
 ```
 
-Push reminders use Expo:
+Push reminders use OneSignal:
 
 ```env
-EXPO_PUSH_ACCESS_TOKEN=
+ONESIGNAL_APP_ID=
+ONESIGNAL_REST_API_KEY=
 ```
 
 ## API Docs

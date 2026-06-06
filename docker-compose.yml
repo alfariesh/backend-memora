@@ -40,12 +40,12 @@ x-backend-app-environment: &x-backend-app-environment
   JWT_TOKEN_EXPIRY: "15m"
   JWT_REFRESH_TOKEN_EXPIRY: "720h"
   JWT_SECRET: "your-secret-key-change-in-production"
-  # Cloudflare Email Service
-  CLOUDFLARE_EMAIL_ACCOUNT_ID: ""
-  CLOUDFLARE_EMAIL_API_TOKEN: ""
-  CLOUDFLARE_EMAIL_FROM_EMAIL: ""
-  # Expo Push Notifications
-  EXPO_PUSH_ACCESS_TOKEN: ""
+  # Resend Email Service
+  RESEND_API_KEY: ""
+  RESEND_FROM_EMAIL: ""
+  # OneSignal Push Notifications
+  ONESIGNAL_APP_ID: ""
+  ONESIGNAL_REST_API_KEY: ""
   # Reminder worker
   REMINDER_WORKER_BATCH_SIZE: "50"
   REMINDER_WORKER_POLL_INTERVAL: "1m"

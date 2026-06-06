@@ -33,7 +33,7 @@ Swagger generated:
 - [User Profile And Settings](user.md): profile, change password, reminder defaults, notification channel preferences.
 - [Important Days](important-days.md): CRUD tanggal penting, enum type, upcoming calculation, date rules.
 - [Reminder Rules](reminders.md): aturan reminder per important day, default offsets/channels, schedule behavior.
-- [Devices And Push](devices.md): registrasi Expo token, test push, deactivate device.
+- [Devices And Push](devices.md): registrasi OneSignal subscription ID, test push, deactivate device.
 - [Notifications](notifications.md): in-app notification list, unread badge, mark read.
 - [Mobile Bootstrap](mobile.md): endpoint untuk hydrate home screen setelah login.
 - [Reminder Worker](worker.md): perilaku delivery email/in-app/push dan environment terkait.
@@ -53,7 +53,7 @@ Register or Login
   -> store access_token and refresh_token
   -> GET /v1/mobile/bootstrap
   -> render home screen, unread badge, upcoming days, device state
-  -> register Expo push token when available
+  -> register OneSignal subscription ID when available
   -> CRUD important days and reminder rules
 ```
 

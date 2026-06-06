@@ -509,6 +509,87 @@ func (mr *MockReminderJobRepoMockRecorder) Store(ctx, job any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Store", reflect.TypeOf((*MockReminderJobRepo)(nil).Store), ctx, job)
 }
 
+// MockReminderDeliveryRepo is a mock of ReminderDeliveryRepo interface.
+type MockReminderDeliveryRepo struct {
+	ctrl     *gomock.Controller
+	recorder *MockReminderDeliveryRepoMockRecorder
+	isgomock struct{}
+}
+
+// MockReminderDeliveryRepoMockRecorder is the mock recorder for MockReminderDeliveryRepo.
+type MockReminderDeliveryRepoMockRecorder struct {
+	mock *MockReminderDeliveryRepo
+}
+
+// NewMockReminderDeliveryRepo creates a new mock instance.
+func NewMockReminderDeliveryRepo(ctrl *gomock.Controller) *MockReminderDeliveryRepo {
+	mock := &MockReminderDeliveryRepo{ctrl: ctrl}
+	mock.recorder = &MockReminderDeliveryRepoMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockReminderDeliveryRepo) EXPECT() *MockReminderDeliveryRepoMockRecorder {
+	return m.recorder
+}
+
+// Begin mocks base method.
+func (m *MockReminderDeliveryRepo) Begin(ctx context.Context, delivery entity.ReminderDelivery, now time.Time) (entity.ReminderDelivery, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Begin", ctx, delivery, now)
+	ret0, _ := ret[0].(entity.ReminderDelivery)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Begin indicates an expected call of Begin.
+func (mr *MockReminderDeliveryRepoMockRecorder) Begin(ctx, delivery, now any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Begin", reflect.TypeOf((*MockReminderDeliveryRepo)(nil).Begin), ctx, delivery, now)
+}
+
+// MarkFailed mocks base method.
+func (m *MockReminderDeliveryRepo) MarkFailed(ctx context.Context, id, reason string, failedAt time.Time) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MarkFailed", ctx, id, reason, failedAt)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// MarkFailed indicates an expected call of MarkFailed.
+func (mr *MockReminderDeliveryRepoMockRecorder) MarkFailed(ctx, id, reason, failedAt any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkFailed", reflect.TypeOf((*MockReminderDeliveryRepo)(nil).MarkFailed), ctx, id, reason, failedAt)
+}
+
+// MarkSent mocks base method.
+func (m *MockReminderDeliveryRepo) MarkSent(ctx context.Context, id, providerMessageID string, sentAt time.Time) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MarkSent", ctx, id, providerMessageID, sentAt)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// MarkSent indicates an expected call of MarkSent.
+func (mr *MockReminderDeliveryRepoMockRecorder) MarkSent(ctx, id, providerMessageID, sentAt any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkSent", reflect.TypeOf((*MockReminderDeliveryRepo)(nil).MarkSent), ctx, id, providerMessageID, sentAt)
+}
+
+// MarkSkipped mocks base method.
+func (m *MockReminderDeliveryRepo) MarkSkipped(ctx context.Context, id, reason string, skippedAt time.Time) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MarkSkipped", ctx, id, reason, skippedAt)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// MarkSkipped indicates an expected call of MarkSkipped.
+func (mr *MockReminderDeliveryRepoMockRecorder) MarkSkipped(ctx, id, reason, skippedAt any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkSkipped", reflect.TypeOf((*MockReminderDeliveryRepo)(nil).MarkSkipped), ctx, id, reason, skippedAt)
+}
+
 // MockNotificationRepo is a mock of NotificationRepo interface.
 type MockNotificationRepo struct {
 	ctrl     *gomock.Controller
@@ -727,18 +808,18 @@ func (m *MockEmailSender) EXPECT() *MockEmailSenderMockRecorder {
 }
 
 // Send mocks base method.
-func (m *MockEmailSender) Send(ctx context.Context, to, subject, html string) (string, error) {
+func (m *MockEmailSender) Send(ctx context.Context, to, subject, html, idempotencyKey string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Send", ctx, to, subject, html)
+	ret := m.ctrl.Call(m, "Send", ctx, to, subject, html, idempotencyKey)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Send indicates an expected call of Send.
-func (mr *MockEmailSenderMockRecorder) Send(ctx, to, subject, html any) *gomock.Call {
+func (mr *MockEmailSenderMockRecorder) Send(ctx, to, subject, html, idempotencyKey any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Send", reflect.TypeOf((*MockEmailSender)(nil).Send), ctx, to, subject, html)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Send", reflect.TypeOf((*MockEmailSender)(nil).Send), ctx, to, subject, html, idempotencyKey)
 }
 
 // MockPushSender is a mock of PushSender interface.
@@ -766,16 +847,16 @@ func (m *MockPushSender) EXPECT() *MockPushSenderMockRecorder {
 }
 
 // Send mocks base method.
-func (m *MockPushSender) Send(ctx context.Context, token, title, body string, data map[string]string) (string, error) {
+func (m *MockPushSender) Send(ctx context.Context, token, title, body string, data map[string]string, idempotencyKey string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Send", ctx, token, title, body, data)
+	ret := m.ctrl.Call(m, "Send", ctx, token, title, body, data, idempotencyKey)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Send indicates an expected call of Send.
-func (mr *MockPushSenderMockRecorder) Send(ctx, token, title, body, data any) *gomock.Call {
+func (mr *MockPushSenderMockRecorder) Send(ctx, token, title, body, data, idempotencyKey any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Send", reflect.TypeOf((*MockPushSender)(nil).Send), ctx, token, title, body, data)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Send", reflect.TypeOf((*MockPushSender)(nil).Send), ctx, token, title, body, data, idempotencyKey)
 }

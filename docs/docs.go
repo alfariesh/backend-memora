@@ -355,7 +355,7 @@ const docTemplate = `{
         },
         "/devices": {
             "get": {
-                "description": "List active Expo push tokens for the current user",
+                "description": "List active OneSignal subscription IDs for the current user",
                 "produces": [
                     "application/json"
                 ],
@@ -391,7 +391,7 @@ const docTemplate = `{
                 ]
             },
             "post": {
-                "description": "Register or reactivate an Expo push token for the current user",
+                "description": "Register or reactivate a OneSignal subscription ID for the current user",
                 "consumes": [
                     "application/json"
                 ],
@@ -496,7 +496,7 @@ const docTemplate = `{
         },
         "/devices/{id}/test-push": {
             "post": {
-                "description": "Send a test Expo push notification to a registered device",
+                "description": "Send a test OneSignal push notification to a registered device",
                 "consumes": [
                     "application/json"
                 ],
@@ -1566,7 +1566,7 @@ const docTemplate = `{
                 },
                 "token": {
                     "type": "string",
-                    "example": "ExpoPushToken[xxxxxxxxxxxxxxxxxxxxxx]"
+                    "example": "1dd608f2-c6a1-11e3-851d-000c2940e62c"
                 },
                 "updated_at": {
                     "type": "string",
@@ -2245,7 +2245,7 @@ const docTemplate = `{
                 },
                 "token": {
                     "type": "string",
-                    "example": "ExpoPushToken[xxxxxxxxxxxxxxxxxxxxxx]"
+                    "example": "1dd608f2-c6a1-11e3-851d-000c2940e62c"
                 }
             }
         },

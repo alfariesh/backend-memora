@@ -11,7 +11,7 @@ import (
 )
 
 // @Summary     List devices
-// @Description List active Expo push tokens for the current user
+// @Description List active OneSignal subscription IDs for the current user
 // @ID          list-devices
 // @Tags        devices
 // @Produce     json
@@ -40,7 +40,7 @@ func (r *V1) listDevices(ctx *fiber.Ctx) error {
 }
 
 // @Summary     Register device
-// @Description Register or reactivate an Expo push token for the current user
+// @Description Register or reactivate a OneSignal subscription ID for the current user
 // @ID          register-device
 // @Tags        devices
 // @Accept      json
@@ -86,7 +86,7 @@ func (r *V1) registerDevice(ctx *fiber.Ctx) error {
 }
 
 // @Summary     Send test push
-// @Description Send a test Expo push notification to a registered device
+// @Description Send a test OneSignal push notification to a registered device
 // @ID          test-push
 // @Tags        devices
 // @Accept      json

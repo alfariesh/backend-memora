@@ -45,6 +45,7 @@ func main() {
 	userSettingsRepo := persistent.NewUserSettingsRepo(pg)
 	notificationRepo := persistent.NewNotificationRepo(pg)
 	deviceTokenRepo := persistent.NewDeviceTokenRepo(pg)
+	reminderDeliveryRepo := persistent.NewReminderDeliveryRepo(pg)
 
 	uc := reminder.New(
 		reminderJobRepo,
@@ -53,8 +54,9 @@ func main() {
 		userSettingsRepo,
 		notificationRepo,
 		deviceTokenRepo,
-		webapi.NewCloudflareEmailSender(cfg.Email.AccountID, cfg.Email.APIToken, cfg.Email.FromEmail),
-		webapi.NewExpoPushSender(cfg.Expo.PushAccessToken),
+		reminderDeliveryRepo,
+		webapi.NewResendEmailSender(cfg.Resend.APIKey, cfg.Resend.FromEmail),
+		webapi.NewOneSignalPushSender(cfg.OneSignal.AppID, cfg.OneSignal.RESTAPIKey),
 	)
 
 	ticker := time.NewTicker(cfg.Worker.PollInterval)

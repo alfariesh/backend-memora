@@ -117,12 +117,12 @@ Contoh validation error:
 | `200` | Request sukses dengan JSON body. |
 | `201` | Resource berhasil dibuat. |
 | `204` | Request sukses tanpa body. Jangan coba parse JSON. |
-| `400` | Body/query invalid, field tidak valid, tanggal invalid, token Expo invalid. |
+| `400` | Body/query invalid, field tidak valid, tanggal invalid, OneSignal subscription ID invalid. |
 | `401` | Access token tidak ada, format salah, expired, atau invalid. |
 | `403` | Aksi ditolak oleh authorization eksplisit. ID milik user lain diperlakukan sebagai `404`. |
 | `404` | Resource tidak ditemukan, tidak aktif, atau bukan milik user ini. |
 | `409` | Conflict, saat ini dipakai untuk duplicate user email. |
-| `410` | Expo menyatakan device token tidak terdaftar lagi. |
+| `410` | OneSignal menyatakan subscription ID tidak terdaftar lagi. |
 | `429` | Terkena rate limit. |
 | `502` | Backend gagal mengirim ke provider push. |
 | `503` | Push sender tidak tersedia atau tidak terkonfigurasi pada runtime tertentu. |

@@ -12,6 +12,7 @@ var (
 	ErrInvalidImportantDayDate  = errors.New("invalid important day date")
 	ErrReminderRuleNotFound     = errors.New("reminder rule not found")
 	ErrReminderJobNotFound      = errors.New("reminder job not found")
+	ErrReminderDeliveryNotFound = errors.New("reminder delivery not found")
 	ErrNotificationNotFound     = errors.New("notification not found")
 	ErrDeviceTokenNotFound      = errors.New("device token not found")
 	ErrInvalidDeviceToken       = errors.New("invalid device token")

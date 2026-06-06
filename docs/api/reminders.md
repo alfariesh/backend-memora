@@ -20,9 +20,9 @@ Arti channel:
 
 | Channel | Delivery |
 | --- | --- |
-| `email` | Email ke email account user melalui Cloudflare Email Service. |
+| `email` | Email ke email account user melalui Resend. |
 | `in_app` | Membuat record notification yang muncul di endpoint notifications. |
-| `push` | Mengirim Expo push notification ke active device tokens user. |
+| `push` | Mengirim OneSignal push notification ke active device tokens user. |
 
 ## Reminder Rule Object
 
@@ -72,7 +72,7 @@ Important:
 
 ## Scheduling Behavior
 
-Untuk setiap rule, backend membuat pending reminder job:
+Untuk setiap rule dan setiap channel aktif pada rule, backend membuat pending reminder job:
 
 ```text
 scheduled_at = occurrence_date at reminder_time in timezone - offset_days
@@ -93,6 +93,8 @@ Contoh:
 Reminder dijadwalkan pada `6 Mei 09:00 Asia/Jakarta`, lalu disimpan sebagai UTC.
 
 Jika hasil schedule sudah lewat saat create/update/replace, backend set `scheduled_at` ke waktu sekarang supaya job bisa segera diproses worker.
+
+Karena job dibuat per-channel, rule dengan `channels: ["email", "in_app", "push"]` menghasilkan tiga job terpisah untuk offset dan occurrence yang sama. Retry/status email, in-app, dan push tidak saling menutup.
 
 ## Get Reminder Rules
 
@@ -213,18 +215,18 @@ Body:  <important day title> is coming in <offset_days> days.
 
 ## Delivery Filtering
 
-Saat worker memproses job, channels pada job difilter dengan `notification_channels` user settings terbaru.
+Saat worker memproses job, channel pada job difilter dengan `notification_channels` user settings terbaru.
 
 Contoh:
 
 ```json
 {
-  "job_channels": ["email", "in_app", "push"],
+  "job_channel": "push",
   "user_notification_channels": ["in_app"]
 }
 ```
 
-Yang dikirim hanya `in_app`.
+Job `push` akan di-skip karena channel itu tidak aktif di user settings.
 
 ## FE Notes
 

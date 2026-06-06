@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/alfariesh/backend-memora/internal/entity"
@@ -50,7 +51,8 @@ func (uc *UseCase) List(ctx context.Context, userID string) ([]entity.DeviceToke
 
 // Register -.
 func (uc *UseCase) Register(ctx context.Context, userID, token, platform, name string) (entity.DeviceToken, error) {
-	if !entity.IsExpoPushToken(token) {
+	token = strings.TrimSpace(token)
+	if !entity.IsOneSignalSubscriptionID(token) {
 		return entity.DeviceToken{}, entity.ErrInvalidDeviceToken
 	}
 
@@ -61,6 +63,7 @@ func (uc *UseCase) Register(ctx context.Context, userID, token, platform, name s
 		Token:     token,
 		Platform:  platform,
 		Name:      name,
+		Provider:  entity.DeviceTokenProviderOneSignal,
 		Active:    true,
 		CreatedAt: now,
 		UpdatedAt: now,
@@ -106,7 +109,7 @@ func (uc *UseCase) TestPush(ctx context.Context, userID, id, title, body string)
 		"type":      "test_push",
 		"device_id": deviceToken.ID,
 		"sent_at":   now.Format(time.RFC3339),
-	})
+	}, "test_push:"+uuid.NewString())
 	if err != nil {
 		if errors.Is(err, entity.ErrPushDeviceNotRegistered) {
 			if deactivateErr := uc.repo.Deactivate(ctx, userID, deviceToken.ID, now); deactivateErr != nil {

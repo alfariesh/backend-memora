@@ -232,7 +232,7 @@ func TestHTTPDevicesAndNotificationsV1(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), requestTimeout)
 	defer cancel()
 
-	resp, err := doAuthenticatedRequest(ctx, http.MethodPost, basePathV1+"/devices/", bytes.NewBufferString(`{"token":"ExpoPushToken[test]","platform":"android","name":"test"}`), token)
+	resp, err := doAuthenticatedRequest(ctx, http.MethodPost, basePathV1+"/devices/", bytes.NewBufferString(`{"token":"11111111-1111-4111-8111-111111111111","platform":"android","name":"test"}`), token)
 	if err != nil {
 		t.Fatalf("Register device: %v", err)
 	}
@@ -442,7 +442,7 @@ func TestHTTPMobileBootstrapV1(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), requestTimeout)
 	defer cancel()
 
-	resp, err := doAuthenticatedRequest(ctx, http.MethodPost, basePathV1+"/devices/", bytes.NewBufferString(`{"token":"ExpoPushToken[bootstrap]","platform":"ios","name":"iPhone"}`), token)
+	resp, err := doAuthenticatedRequest(ctx, http.MethodPost, basePathV1+"/devices/", bytes.NewBufferString(`{"token":"22222222-2222-4222-8222-222222222222","platform":"ios","name":"iPhone"}`), token)
 	if err != nil {
 		t.Fatalf("Register bootstrap device: %v", err)
 	}
@@ -499,7 +499,7 @@ func TestHTTPMobileBootstrapV1(t *testing.T) {
 	}
 }
 
-func TestHTTPRegisterDeviceRejectsInvalidExpoTokenV1(t *testing.T) {
+func TestHTTPRegisterDeviceRejectsInvalidOneSignalSubscriptionIDV1(t *testing.T) {
 	token := registerAndLogin(t)
 
 	ctx, cancel := context.WithTimeout(t.Context(), requestTimeout)
@@ -746,7 +746,7 @@ func TestGRPCDeviceValidationV1(t *testing.T) {
 	}
 
 	_, err = client.RegisterDevice(authCtx, &protov1.RegisterDeviceRequest{
-		Token:    "not-an-expo-token",
+		Token:    "not-a-onesignal-subscription-id",
 		Platform: "ios",
 	})
 	if status.Code(err) != codes.InvalidArgument {
@@ -754,7 +754,7 @@ func TestGRPCDeviceValidationV1(t *testing.T) {
 	}
 
 	registered, err := client.RegisterDevice(authCtx, &protov1.RegisterDeviceRequest{
-		Token:    "ExpoPushToken[grpc-device]",
+		Token:    "33333333-3333-4333-8333-333333333333",
 		Platform: "ios",
 		Name:     "iPhone",
 	})
